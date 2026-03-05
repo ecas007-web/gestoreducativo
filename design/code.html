@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Eduardo Castro | Portfolio</title>
+    
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0984e1",
+                        "primary-dark": "#0284c7",
+                        "background-light": "#f5f7f8",
+                        "background-dark": "#101a22",
+                        "bg-body": "#020617",
+                        "bg-card": "#0f172a",
+                        "bg-card-hover": "#1e293b",
+                        "text-main": "#f8fafc",
+                        "text-dim": "#94a3b8",
+                        "border-custom": "#1e293b",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "sans": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "md": "0.375rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    
+    <style>
+        :root {
+            font-size: 10px;
+        }
+        body {
+            font-size: 1.6rem;
+        }
+        
+        /* Custom scrollbar for dark theme consistency */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #0984e1; }
+    </style>
+
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/history@5/umd/history.development.js"></script>
+    <script src="https://unpkg.com/react-router@6.3.0/umd/react-router.development.js"></script>
+    <script src="https://unpkg.com/react-router-dom@6.3.0/umd/react-router-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { createRoot } = ReactDOM;
+        const { MemoryRouter, Routes, Route, Link, useNavigate, useLocation } = ReactRouterDOM;
+
+        // --- Layout Components ---
+
+        const TopNav = ({ hideLinks }) => {
+            const location = useLocation();
+            
+            const getLinkClass = (path) => {
+                return `transition-colors text-[1.4rem] font-medium ${
+                    location.pathname === path 
+                    ? "text-primary font-semibold underline underline-offset-8" 
+                    : "text-slate-600 dark:text-slate-300 hover:text-primary"
+                }`;
+            };
+
+            return (
+                <header class="flex items-center justify-between border-b border-solid border-slate-200 dark:border-slate-800 px-8 py-4 lg:px-40 bg-white dark:bg-background-dark z-10 relative">
+                    <Link to="/" class="flex items-center gap-4">
+                        <div class="text-primary">
+                            <span class="material-symbols-outlined text-4xl block">dashboard_customize</span>
+                        </div>
+                        <h2 class="text-slate-900 dark:text-white text-[1.8rem] font-bold tracking-tight">Eduardo Castro</h2>
+                    </Link>
+                    
+                    {!hideLinks && (
+                        <div class="hidden md:flex flex-1 justify-end gap-12 items-center">
+                            <nav class="flex items-center gap-10">
+                                <Link class={getLinkClass('/')} to="/">Inicio</Link>
+                                <Link class={getLinkClass('/proyectos')} to="/proyectos">Proyectos</Link>
+                                <Link class={getLinkClass('/experiencia')} to="/experiencia">Experiencia</Link>
+                                <Link class={getLinkClass('/contacto')} to="/contacto">Contacto</Link>
+                            </nav>
+                            <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden border border-primary/30">
+                                <img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3WqtWChsT8j4PWOIwcpnMGr7ZkOVhPFkWGTNIFBzNrXy8ugS7rhRYPmwXtrTfZ5vpH--LfjdEau0ZIGm0-ASw_Cmah7qrgmDFdAm4NppcaRW0PdbeTbB0G51I65v51O5QwO5mnvSNKptdiJbEGFqsGhiw4uw-9y8m4BVeOr11-uMTdPN5dTyYLRNZVwEFElyeF-iedt2hvG6gzNQ36jwHUzwVOu4MWL_VnBWtFoUK58HZ0FG-cwC29wpBXgKnQvc2OCvAG6zFZswT" alt="Eduardo Castro" />
+                            </div>
+                        </div>
+                    )}
+                </header>
+            );
+        };
+
+        const Footer = () => (
+            <footer class="border-t border-slate-200 dark:border-slate-800 py-12 px-8 lg:px-40 mt-auto bg-white dark:bg-background-dark">
+                <div class="max-w-[100rem] mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+                    <p class="text-slate-500 dark:text-slate-500 text-[1.4rem]">© 2024 Eduardo Castro. Todos los derechos reservados.</p>
+                    <div class="flex gap-10">
+                        <a class="text-slate-400 hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">description</span></a>
+                        <a class="text-slate-400 hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">code</span></a>
+                        <a class="text-slate-400 hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined">share</span></a>
+                    </div>
+                </div>
+            </footer>
+        );
+
+        // --- Screens ---
+
+        const DashboardHome = () => {
+            const navigate = useNavigate();
+            return (
+                <div class="flex h-screen overflow-hidden bg-bg-body text-text-main custom-scroll">
+                    <style>{`
+                        .dashboard-grid {
+                            display: grid;
+                            grid-template-columns: 28rem 1fr 32rem;
+                            grid-template-rows: 8rem 1fr;
+                            height: 100vh;
+                            gap: 2rem;
+                            padding: 2rem;
+                            background: radial-gradient(circle at top right, #1e1b4b, transparent 40%),
+                                        radial-gradient(circle at bottom left, #0c4a6e, transparent 40%);
+                        }
+                        .dash-widget {
+                            background: var(--bg-card);
+                            border: 1px solid var(--border-custom);
+                            border-radius: 2rem;
+                            padding: 2.5rem;
+                            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+                            transition: transform 0.3s ease, border-color 0.3s ease;
+                        }
+                        .dash-widget:hover { border-color: rgba(9, 132, 225, 0.3); }
+                        @media (max-width: 1200px) {
+                            .dashboard-grid { grid-template-columns: 28rem 1fr; grid-template-rows: 8rem 1fr auto; height: auto; }
+                            .dash-sidebar-right { grid-column: 1 / -1; grid-row: 3; flex-direction: row; flex-wrap: wrap; }
+                            .dash-sidebar-right .dash-widget { flex: 1; min-width: 30rem; }
+                        }
+                        @media (max-width: 768px) {
+                            .dashboard-grid { grid-template-columns: 1fr; padding: 1rem; }
+                            .dash-sidebar-left, .dash-main-content, .dash-sidebar-right { grid-column: 1; }
+                            .dash-sidebar-left { grid-row: 2; }
+                            .dash-main-content { grid-row: 3; }
+                            .dash-sidebar-right { grid-row: 4; }
+                        }
+                    `}</style>
+                    <div class="dashboard-grid w-full">
+                        <header class="col-span-full flex items-center justify-between bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl px-12">
+                            <div class="flex items-center gap-4 text-2xl font-extrabold text-primary">
+                                <span class="material-symbols-outlined">dashboard_customize</span> EC PORTFOLIO
+                            </div>
+                            <nav class="hidden md:flex gap-12">
+                                <Link to="/" class="text-white text-xl font-medium hover:text-primary transition-colors">Inicio</Link>
+                                <Link to="/proyectos" class="text-slate-400 text-xl font-medium hover:text-primary transition-colors">Proyectos</Link>
+                                <Link to="/experiencia" class="text-slate-400 text-xl font-medium hover:text-primary transition-colors">Experiencia</Link>
+                                <Link to="/contacto" class="text-slate-400 text-xl font-medium hover:text-primary transition-colors">Contacto</Link>
+                            </nav>
+                            <div class="flex items-center gap-5">
+                                <div class="text-right leading-tight">
+                                    <p class="font-bold text-lg text-white">Eduardo Castro</p>
+                                    <p class="text-sm text-slate-400">Senior Frontend</p>
+                                </div>
+                                <div class="w-16 h-16 rounded-xl overflow-hidden border-2 border-primary">
+                                    <img alt="Eduardo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3WqtWChsT8j4PWOIwcpnMGr7ZkOVhPFkWGTNIFBzNrXy8ugS7rhRYPmwXtrTfZ5vpH--LfjdEau0ZIGm0-ASw_Cmah7qrgmDFdAm4NppcaRW0PdbeTbB0G51I65v51O5QwO5mnvSNKptdiJbEGFqsGhiw4uw-9y8m4BVeOr11-uMTdPN5dTyYLRNZVwEFElyeF-iedt2hvG6gzNQ36jwHUzwVOu4MWL_VnBWtFoUK58HZ0FG-cwC29wpBXgKnQvc2OCvAG6zFZswT" class="w-full h-full object-cover"/>
+                                </div>
+                            </div>
+                        </header>
+
+                        <aside class="dash-sidebar-left row-start-2 flex flex-col gap-8 overflow-y-auto pr-2">
+                            <div class="dash-widget bg-slate-900">
+                                <div class="text-2xl font-bold mb-8 flex items-center gap-4 text-primary">
+                                    <span class="material-symbols-outlined">analytics</span> Resumen
+                                </div>
+                                <div class="grid grid-cols-2 gap-6">
+                                    <div class="bg-slate-800/50 p-6 rounded-2xl text-center">
+                                        <span class="block text-4xl font-extrabold text-primary mb-2">12+</span>
+                                        <span class="text-sm text-slate-400 uppercase tracking-widest">Años Exp.</span>
+                                    </div>
+                                    <div class="bg-slate-800/50 p-6 rounded-2xl text-center">
+                                        <span class="block text-4xl font-extrabold text-primary mb-2">85+</span>
+                                        <span class="text-sm text-slate-400 uppercase tracking-widest">Proyectos</span>
+                                    </div>
+                                </div>
+                                <p class="mt-8 text-lg text-slate-400 leading-relaxed">Apasionado por crear interfaces que no solo se vean bien, sino que funcionen de manera excepcional.</p>
+                            </div>
+                            
+                            <div class="dash-widget bg-slate-900">
+                                <div class="text-2xl font-bold mb-8 flex items-center gap-4 text-primary">
+                                    <span class="material-symbols-outlined">auto_awesome</span> Habilidades
+                                </div>
+                                <div class="flex flex-col gap-6">
+                                    {[
+                                        { icon: 'data_object', name: 'React / Next.js', pct: '95%' },
+                                        { icon: 'javascript', name: 'JavaScript ES6+', pct: '90%' },
+                                        { icon: 'css', name: 'CSS3 / Grid / Flex', pct: '98%' },
+                                        { icon: 'database', name: 'Supabase / Backend', pct: '80%' }
+                                    ].map(skill => (
+                                        <div key={skill.name} class="bg-slate-800/50 p-6 rounded-2xl flex items-center gap-6">
+                                            <div class="w-16 h-16 bg-gradient-to-br from-primary to-blue-600 rounded-xl flex items-center justify-center text-white">
+                                                <span class="material-symbols-outlined text-3xl">{skill.icon}</span>
+                                            </div>
+                                            <div class="flex-1">
+                                                <div class="font-bold text-lg mb-3">{skill.name}</div>
+                                                <div class="h-3 bg-slate-700 rounded-full overflow-hidden">
+                                                    <div class="h-full bg-primary rounded-full" style={{ width: skill.pct }}></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </aside>
+
+                        <main class="dash-main-content row-start-2 overflow-y-auto flex flex-col gap-8 pr-2">
+                            <section class="dash-widget bg-slate-900 relative overflow-hidden min-h-[40rem] flex flex-col justify-end p-12" style={{
+                                backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.9)), url('https://lh3.googleusercontent.com/aida-public/AB6AXuBQ30-t1OvgBOcszKKb-O6cWsnCzTOPdA9Ii8DOzcCHhKNQU1oa6PrTTGSgByxYyGeDEDQ49IVvlgZMWQrMzUtNivRWM7ow_9x68kE0262jWqqWZntJaiuYcTJy-TcK14X9gS4s-eVhcKkCOwVVCpdkq54JAKA5J_ph48CZ6StFkXJP6VhVJ-1lrCELA2fbUxp1jGd0w4zQil-Og8J-BtyO3r0msYa8m5S4RXKA2xxhElHHxFysnFt-tEzQR-ChXzfiAs8UkX_RmN1S')`,
+                                backgroundSize: 'cover', backgroundPosition: 'center'
+                            }}>
+                                <span class="absolute top-8 right-8 bg-primary/20 border border-primary text-primary px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wider">Disponible para nuevos retos</span>
+                                <h1 class="text-6xl font-black leading-tight mb-6">Eduardo <span class="text-primary">Castro</span></h1>
+                                <p class="text-2xl text-slate-400 max-w-[60rem] leading-relaxed">Desarrollador Frontend Senior transformando ideas complejas en experiencias digitales fluidas y escalables.</p>
+                                <div class="mt-10 flex gap-6">
+                                    <Link to="/proyectos" class="bg-primary hover:bg-primary-dark text-white px-8 py-4 rounded-xl font-bold text-lg transition-colors">Ver Proyectos</Link>
+                                    <Link to="/contacto" class="bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-xl font-bold text-lg backdrop-blur-sm transition-colors">Contactar</Link>
+                                </div>
+                            </section>
+
+                            <section class="dash-widget bg-slate-900">
+                                <div class="flex justify-between items-center mb-8">
+                                    <div class="text-2xl font-bold flex items-center gap-4 text-primary">
+                                        <span class="material-symbols-outlined">grid_view</span> Proyectos Destacados
+                                    </div>
+                                    <div class="flex gap-4">
+                                        <span class="material-symbols-outlined cursor-pointer text-slate-500 hover:text-white">arrow_back_ios</span>
+                                        <span class="material-symbols-outlined cursor-pointer text-primary">arrow_forward_ios</span>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                                    <div class="bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 flex flex-col">
+                                        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdaT6wyCB1cgCxzrX54cULrmpveh17bGAYD7v6J2ei88Pp90dZhlah4WAxIhwXxuWE2iryQ4hSYx9hlVQr05uMrOgNLvUoJMP1YNEo6fdgoyOJnjmcxxLDD5gsDsAq_VSXYt_OPGxvQbLJDTwpnOTZM3tTAA9VR2VF8FzG0np_3Hz0qsVcI3JfdvoL_mnf7SowNuPCS884DW7CTSXhYvq3JSCpeikdy6LBdk-rSSz83WVbGM895xRgvywILD0uNyr8FBgr0RBtwhbt" class="h-[20rem] w-full object-cover" alt="Proj 1"/>
+                                        <div class="p-8 flex-1 flex flex-col">
+                                            <div class="flex gap-3 mb-4">
+                                                <span class="bg-primary/10 text-primary px-3 py-1 rounded text-xs font-bold">React</span>
+                                                <span class="bg-primary/10 text-primary px-3 py-1 rounded text-xs font-bold">D3.js</span>
+                                            </div>
+                                            <h3 class="text-2xl font-bold mb-4">Nexus Dashboard</h3>
+                                            <p class="text-slate-400 text-lg mb-6 flex-1">Plataforma de visualización de datos en tiempo real para empresas fintech.</p>
+                                            <Link to="/proyectos" class="text-primary font-bold flex items-center gap-2 text-lg hover:underline">Explorar <span class="material-symbols-outlined">trending_flat</span></Link>
+                                        </div>
+                                    </div>
+                                    <div class="bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 flex flex-col">
+                                        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxAOx2ZgfpaZ_rC6EvAMUirEF_zC7hSKqYrTd8iFbctV7_wwvipcVcleHtnyL3AsSo3DXm1-IYZ7n6yFeDfAuz6rgxEBAeboLGFPiP-msfOdSViPE5sLdkJqLxkmuUdp4kqXUstxInRx-Xzn7znJB2ogznhjn8fsV7kzfBDWwnGA4KR7w8V5brfkWmCOnic7my5fm6ugur7BgIx8IWCfkWCHrulQr26LHMVKNroNVZqWfFxvL5JN1GJ8Ro5x6kKz8sN9Ig-ZUTUtgq" class="h-[20rem] w-full object-cover" alt="Proj 2"/>
+                                        <div class="p-8 flex-1 flex flex-col">
+                                            <div class="flex gap-3 mb-4">
+                                                <span class="bg-primary/10 text-primary px-3 py-1 rounded text-xs font-bold">Next.js</span>
+                                                <span class="bg-primary/10 text-primary px-3 py-1 rounded text-xs font-bold">Stripe</span>
+                                            </div>
+                                            <h3 class="text-2xl font-bold mb-4">Booking Pro</h3>
+                                            <p class="text-slate-400 text-lg mb-6 flex-1">Sistema de reservas optimizado con pasarela de pagos integrada.</p>
+                                            <Link to="/proyectos" class="text-primary font-bold flex items-center gap-2 text-lg hover:underline">Explorar <span class="material-symbols-outlined">trending_flat</span></Link>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        </main>
+
+                        <aside class="dash-sidebar-right row-start-2 flex flex-col gap-8 overflow-y-auto pr-2">
+                            <div class="dash-widget bg-slate-900">
+                                <div class="text-2xl font-bold mb-8 flex items-center gap-4 text-primary">
+                                    <span class="material-symbols-outlined">work</span> Experiencia
+                                </div>
+                                <div class="flex flex-col">
+                                    <div class="relative pl-10 pb-10 border-l-2 border-slate-700">
+                                        <div class="absolute -left-[7px] top-0 w-3 h-3 bg-primary rounded-full"></div>
+                                        <div class="text-primary font-bold text-sm mb-2">2021 - Presente</div>
+                                        <div class="font-bold text-xl mb-1">Lead Frontend Developer</div>
+                                        <div class="text-slate-400 text-sm">Global Tech Solutions</div>
+                                    </div>
+                                    <div class="relative pl-10 pb-10 border-l-2 border-slate-700">
+                                        <div class="absolute -left-[7px] top-0 w-3 h-3 bg-primary rounded-full"></div>
+                                        <div class="text-primary font-bold text-sm mb-2">2018 - 2021</div>
+                                        <div class="font-bold text-xl mb-1">Senior Web Engineer</div>
+                                        <div class="text-slate-400 text-sm">Creative Digital Agency</div>
+                                    </div>
+                                    <div class="relative pl-10">
+                                        <div class="absolute -left-[7px] top-0 w-3 h-3 bg-primary rounded-full"></div>
+                                        <div class="text-primary font-bold text-sm mb-2">2012 - 2018</div>
+                                        <div class="font-bold text-xl mb-1">Frontend Developer</div>
+                                        <div class="text-slate-400 text-sm">Startup Innovate</div>
+                                    </div>
+                                </div>
+                                <Link to="/experiencia" class="mt-8 block text-center text-slate-400 hover:text-primary text-sm font-bold">Ver todo</Link>
+                            </div>
+
+                            <div class="dash-widget bg-slate-900">
+                                <div class="text-2xl font-bold mb-8 flex items-center gap-4 text-primary">
+                                    <span class="material-symbols-outlined">send</span> Contacto Rápido
+                                </div>
+                                <form onSubmit={(e) => { e.preventDefault(); navigate('/contacto'); }} class="flex flex-col gap-6">
+                                    <div>
+                                        <label class="block text-sm font-bold text-slate-400 mb-2">Nombre</label>
+                                        <input class="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-white text-lg focus:border-primary outline-none" type="text" placeholder="Tu nombre" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-bold text-slate-400 mb-2">Email</label>
+                                        <input class="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-white text-lg focus:border-primary outline-none" type="email" placeholder="tu@email.com" />
+                                    </div>
+                                    <button class="w-full bg-gradient-to-r from-primary to-blue-600 text-white border-none py-4 rounded-xl font-extrabold text-lg cursor-pointer hover:opacity-90" type="submit">Contactar</button>
+                                </form>
+                            </div>
+                        </aside>
+                    </div>
+                </div>
+            );
+        };
+
+        const ProjectsPage = () => {
+            return (
+                <div class="flex h-screen overflow-hidden bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+                    {/* Simplified Sidebar for inner pages based on Screen 2 */}
+                    <aside class="w-80 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark flex flex-col hidden md:flex">
+                        <div class="p-8 border-b border-slate-200 dark:border-slate-800 flex items-center gap-4">
+                            <Link to="/" class="flex items-center gap-4">
+                                <div class="bg-primary p-2 rounded-lg text-white">
+                                    <span class="material-symbols-outlined text-3xl block">dashboard_customize</span>
+                                </div>
+                                <h2 class="text-2xl font-bold tracking-tight">EC Admin</h2>
+                            </Link>
+                        </div>
+                        <div class="flex-1 overflow-y-auto py-8 px-4 space-y-2">
+                            <div class="px-4 mb-4">
+                                <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest">Navegación</p>
+                            </div>
+                            <Link to="/" class="flex items-center gap-4 px-4 py-3 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                <span class="material-symbols-outlined">grid_view</span> <span class="font-medium text-lg">Dashboard</span>
+                            </Link>
+                            <Link to="/proyectos" class="flex items-center gap-4 px-4 py-3 rounded-lg bg-primary/10 text-primary">
+                                <span class="material-symbols-outlined">work</span> <span class="font-medium text-lg">Proyectos</span>
+                            </Link>
+                            <Link to="/experiencia" class="flex items-center gap-4 px-4 py-3 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                <span class="material-symbols-outlined">history_edu</span> <span class="font-medium text-lg">Experiencia</span>
+                            </Link>
+                            <Link to="/contacto" class="flex items-center gap-4 px-4 py-3 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                <span class="material-symbols-outlined">mail</span> <span class="font-medium text-lg">Contacto</span>
+                            </Link>
+                        </div>
+                    </aside>
+
+                    <main class="flex-1 flex flex-col overflow-hidden">
+                        <header class="h-24 flex items-center justify-between px-10 bg-white dark:bg-background-dark border-b border-slate-200 dark:border-slate-800">
+                            <div class="md:hidden flex items-center">
+                                <Link to="/" class="text-primary"><span class="material-symbols-outlined text-4xl">home</span></Link>
+                            </div>
+                            <div class="relative w-full max-w-lg hidden md:block">
+                                <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+                                <input class="w-full pl-12 pr-4 py-3 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-lg focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-slate-500 outline-none" placeholder="Buscar proyectos..." type="text"/>
+                            </div>
+                            <div class="flex items-center gap-6 ml-auto">
+                                <button class="w-12 h-12 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                    <span class="material-symbols-outlined">notifications</span>
+                                </button>
+                                <div class="h-10 w-px bg-slate-200 dark:border-slate-800"></div>
+                                <button class="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-lg font-bold flex items-center gap-2 text-lg transition-all">
+                                    <span class="material-symbols-outlined">add</span> Añadir Proyecto
+                                </button>
+                            </div>
+                        </header>
+
+                        <div class="flex-1 overflow-y-auto p-6 md:p-10 bg-slate-50 dark:bg-slate-900/30">
+                            <div class="mb-10">
+                                <h1 class="text-4xl font-black mb-2 tracking-tight">Mis Proyectos</h1>
+                                <p class="text-xl text-slate-500">Gestiona y supervisa el progreso de tus desarrollos.</p>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+                                <div class="bg-white dark:bg-background-dark p-8 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <span class="text-slate-500 font-medium text-lg uppercase tracking-wider">Activos</span>
+                                        <div class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-2xl">rocket_launch</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-baseline gap-3">
+                                        <span class="text-4xl font-bold">12</span>
+                                    </div>
+                                </div>
+                                <div class="bg-white dark:bg-background-dark p-8 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <span class="text-slate-500 font-medium text-lg uppercase tracking-wider">Completados</span>
+                                        <div class="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                                            <span class="material-symbols-outlined text-2xl">check_circle</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-baseline gap-3">
+                                        <span class="text-4xl font-bold">45</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white dark:bg-background-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                                <div class="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+                                    <h3 class="text-2xl font-bold">Lista Detallada</h3>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left min-w-[800px]">
+                                        <thead class="bg-slate-50 dark:bg-slate-900/50">
+                                            <tr>
+                                                <th class="px-8 py-5 text-lg font-bold text-slate-500 uppercase tracking-wider">Título del Proyecto</th>
+                                                <th class="px-8 py-5 text-lg font-bold text-slate-500 uppercase tracking-wider">Tecnología</th>
+                                                <th class="px-8 py-5 text-lg font-bold text-slate-500 uppercase tracking-wider">Estado</th>
+                                                <th class="px-8 py-5 text-lg font-bold text-slate-500 uppercase tracking-wider text-right">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                                            {[
+                                                { icon: 'shopping_cart', color: 'bg-indigo-500', title: 'E-commerce App NextGen', client: 'Retail Co.', tech: 'React / Node.js', status: 'Activo', sc: 'bg-emerald-500' },
+                                                { icon: 'space_dashboard', color: 'bg-emerald-500', title: 'Dashboard Admin Global', client: 'Interno', tech: 'Vue.js / Firebase', status: 'En Revisión', sc: 'bg-amber-500' },
+                                                { icon: 'web', color: 'bg-amber-500', title: 'Landing Page Corporativa', client: 'TechPulse', tech: 'Tailwind / HTML', status: 'Completado', sc: 'bg-slate-400' },
+                                            ].map((p, i) => (
+                                                <tr key={i} class="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors group">
+                                                    <td class="px-8 py-6">
+                                                        <div class="flex items-center gap-4">
+                                                            <div class={`w-10 h-10 rounded ${p.color} flex items-center justify-center text-white`}>
+                                                                <span class="material-symbols-outlined">{p.icon}</span>
+                                                            </div>
+                                                            <div>
+                                                                <p class="font-bold text-xl">{p.title}</p>
+                                                                <p class="text-sm text-slate-500">{p.client}</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td class="px-8 py-6">
+                                                        <span class="px-4 py-1.5 rounded-full bg-primary/10 text-primary text-base font-semibold">{p.tech}</span>
+                                                    </td>
+                                                    <td class="px-8 py-6">
+                                                        <div class="flex items-center gap-2">
+                                                            <span class={`w-3 h-3 rounded-full ${p.sc}`}></span>
+                                                            <span class="text-lg font-medium">{p.status}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="px-8 py-6 text-right">
+                                                        <div class="flex justify-end gap-3">
+                                                            <button class="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors text-primary"><span class="material-symbols-outlined">edit</span></button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const ExperiencePage = () => {
+            return (
+                <div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+                    <TopNav />
+                    <main class="flex-1 flex flex-col items-center py-12 px-6 lg:px-40">
+                        <div class="max-w-[800px] w-full">
+                            <div class="mb-16">
+                                <h1 class="text-slate-900 dark:text-white text-[4rem] font-black leading-tight tracking-tight mb-4">Mi Trayectoria Profesional</h1>
+                                <p class="text-slate-600 dark:text-slate-400 text-[1.8rem] leading-relaxed max-w-[600px]">
+                                    He dedicado los últimos 8 años a construir interfaces web excepcionales, liderando equipos técnicos y definiendo arquitecturas modernas.
+                                </p>
+                            </div>
+
+                            <div class="space-y-0">
+                                {[
+                                    {
+                                        icon: 'work',
+                                        iconColor: 'bg-primary shadow-[0_0_15px_rgba(9,132,225,0.4)]',
+                                        title: 'Senior Frontend Developer',
+                                        date: 'Ene 2021 — Presente',
+                                        dateClass: 'bg-primary/10 text-primary border border-primary/20',
+                                        company: 'Tech Solutions Global',
+                                        desc: 'Lidero el desarrollo de la plataforma core SaaS, enfocándome en la escalabilidad del sistema de diseño y la optimización del rendimiento de aplicaciones React de gran escala.',
+                                        points: [
+                                            'Migración de arquitectura legacy a una estructura de micro-frontends.',
+                                            'Mentoría directa a un equipo de 6 desarrolladores junior y mid-level.',
+                                            'Implementación de estrategias de CI/CD para automatización de pruebas E2E.'
+                                        ],
+                                        tags: ['Next.js', 'TypeScript', 'Tailwind CSS', 'GraphQL', 'AWS']
+                                    },
+                                    {
+                                        icon: 'architecture',
+                                        iconColor: 'bg-slate-400 dark:bg-slate-700',
+                                        title: 'Lead Web Architect',
+                                        date: 'Mar 2018 — Dic 2020',
+                                        dateClass: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700',
+                                        company: 'Creative Digital Agency',
+                                        desc: 'Responsable de la visión técnica de proyectos para clientes Fortune 500, asegurando estándares de accesibilidad y performance web excepcionales.',
+                                        points: [
+                                            'Desarrollo de un framework interno de UI basado en Web Components.',
+                                            'Reducción del Bundle Size en un 60% mediante técnicas avanzadas de Tree Shaking.'
+                                        ],
+                                        tags: ['Vue.js', 'Nuxt', 'SASS', 'Web Components']
+                                    },
+                                    {
+                                        icon: 'code',
+                                        iconColor: 'bg-slate-400 dark:bg-slate-700',
+                                        title: 'Full Stack Developer',
+                                        date: 'Jun 2015 — Feb 2018',
+                                        dateClass: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700',
+                                        company: 'Startup Hub Incubator',
+                                        desc: 'Desarrollo integral de MVPs para startups emergentes. Trabajo en entornos ágiles con despliegues diarios y feedback constante.',
+                                        points: [],
+                                        tags: ['React', 'Node.js', 'Express', 'MongoDB'],
+                                        last: true
+                                    }
+                                ].map((exp, i) => (
+                                    <div key={i} class={`relative pl-12 pb-16 ${exp.last ? 'border-l-2 border-transparent pb-8' : 'border-l-2 border-primary/30'}`}>
+                                        <div class={`absolute -left-[1.1rem] top-0 w-8 h-8 rounded-full flex items-center justify-center ${exp.iconColor}`}>
+                                            <span class="material-symbols-outlined text-white text-[1.8rem]">{exp.icon}</span>
+                                        </div>
+                                        <div class="flex flex-col gap-2">
+                                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                                <h3 class="text-slate-900 dark:text-white text-[2.2rem] font-bold">{exp.title}</h3>
+                                                <span class={`px-4 py-1 rounded-full text-[1.2rem] font-bold uppercase tracking-wider ${exp.dateClass}`}>{exp.date}</span>
+                                            </div>
+                                            <h4 class="text-primary text-[1.8rem] font-semibold mb-4">{exp.company}</h4>
+                                            <p class="text-slate-600 dark:text-slate-400 text-[1.6rem] leading-relaxed mb-6">{exp.desc}</p>
+                                            
+                                            {exp.points.length > 0 && (
+                                                <div class="flex flex-col gap-4 mb-6">
+                                                    {exp.points.map((pt, j) => (
+                                                        <div key={j} class="flex items-start gap-3">
+                                                            <span class={`material-symbols-outlined text-[2rem] ${i === 0 ? 'text-primary' : 'text-slate-400'}`}>check_circle</span>
+                                                            <p class="text-slate-700 dark:text-slate-300 text-[1.5rem]">{pt}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            
+                                            <div class="flex flex-wrap gap-2">
+                                                {exp.tags.map(tag => (
+                                                    <span key={tag} class="px-3 py-1 bg-slate-200 dark:bg-slate-800 rounded text-[1.3rem] font-medium">{tag}</span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div class="mt-24 p-12 bg-primary/10 rounded-xl border border-primary/20 flex flex-col items-center text-center">
+                                <h2 class="text-slate-900 dark:text-white text-[2.4rem] font-bold mb-4">¿Interesado en trabajar conmigo?</h2>
+                                <Link to="/contacto" class="px-8 py-4 bg-primary text-white text-[1.6rem] font-bold rounded-lg hover:brightness-110 transition-all flex items-center gap-2 mt-4">
+                                    Contactar <span class="material-symbols-outlined">send</span>
+                                </Link>
+                            </div>
+                        </div>
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const ContactPage = () => {
+            const [submitted, setSubmitted] = useState(false);
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                setSubmitted(true);
+                setTimeout(() => setSubmitted(false), 5000);
+            };
+
+            return (
+                <div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+                    <TopNav />
+                    <main class="flex-1 flex flex-col items-center py-16 px-6 lg:px-40">
+                        <div class="w-full max-w-[100rem] grid grid-cols-1 lg:grid-cols-2 gap-20">
+                            <div class="flex flex-col gap-10">
+                                <div class="flex flex-col gap-6">
+                                    <h1 class="text-slate-900 dark:text-white text-[4.8rem] lg:text-[6.4rem] font-black leading-[1.1] tracking-[-0.033em]">
+                                        Trabajemos <span class="text-primary">juntos</span>.
+                                    </h1>
+                                    <p class="text-slate-600 dark:text-slate-400 text-[1.8rem] leading-relaxed max-w-[45rem]">
+                                        ¿Tienes una idea brillante o un proyecto que necesita un impulso creativo? Me encantaría escucharte y ver cómo podemos colaborar.
+                                    </p>
+                                </div>
+                                <div class="flex flex-col gap-8 mt-4">
+                                    <div class="flex items-center gap-6 group">
+                                        <div class="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                                            <span class="material-symbols-outlined text-[2.4rem]">mail</span>
+                                        </div>
+                                        <div>
+                                            <p class="text-slate-500 text-[1.3rem] uppercase font-bold tracking-wider">Email</p>
+                                            <p class="text-slate-900 dark:text-slate-100 text-[1.8rem] font-medium">contacto@eduardocastro.dev</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-6 group">
+                                        <div class="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                                            <span class="material-symbols-outlined text-[2.4rem]">location_on</span>
+                                        </div>
+                                        <div>
+                                            <p class="text-slate-500 text-[1.3rem] uppercase font-bold tracking-wider">Ubicación</p>
+                                            <p class="text-slate-900 dark:text-slate-100 text-[1.8rem] font-medium">Madrid, España</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 lg:p-12 shadow-2xl shadow-primary/5">
+                                <form onSubmit={handleSubmit} class="flex flex-col gap-8">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <label class="flex flex-col gap-3">
+                                            <span class="text-slate-700 dark:text-slate-300 text-[1.4rem] font-semibold">Nombre Completo</span>
+                                            <input class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-6 py-5 text-[1.6rem] text-slate-900 dark:text-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none" placeholder="Ej. Juan Pérez" required type="text"/>
+                                        </label>
+                                        <label class="flex flex-col gap-3">
+                                            <span class="text-slate-700 dark:text-slate-300 text-[1.4rem] font-semibold">Email</span>
+                                            <input class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-6 py-5 text-[1.6rem] text-slate-900 dark:text-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none" placeholder="juan@ejemplo.com" required type="email"/>
+                                        </label>
+                                    </div>
+                                    <label class="flex flex-col gap-3">
+                                        <span class="text-slate-700 dark:text-slate-300 text-[1.4rem] font-semibold">Mensaje</span>
+                                        <textarea class="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-6 py-5 text-[1.6rem] text-slate-900 dark:text-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none" placeholder="Cuéntame sobre tu proyecto..." required rows="5"></textarea>
+                                    </label>
+                                    <button class="mt-4 flex w-full items-center justify-center gap-3 bg-primary hover:bg-primary-dark text-white font-bold py-6 px-8 rounded-xl text-[1.6rem] transition-all transform hover:scale-[1.01] shadow-lg shadow-primary/20" type="submit">
+                                        <span>Enviar Mensaje</span>
+                                        <span class="material-symbols-outlined">send</span>
+                                    </button>
+                                    
+                                    {submitted && (
+                                        <div class="mt-4 flex items-center gap-4 p-5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                                            <span class="material-symbols-outlined text-[2.4rem]">check_circle</span>
+                                            <p class="text-[1.4rem] font-medium leading-tight">Tu mensaje ha sido enviado con éxito.</p>
+                                        </div>
+                                    )}
+                                </form>
+                            </div>
+                        </div>
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const App = () => {
+            return (
+                <MemoryRouter>
+                    <Routes>
+                        <Route path="/" element={<DashboardHome />} />
+                        <Route path="/proyectos" element={<ProjectsPage />} />
+                        <Route path="/experiencia" element={<ExperiencePage />} />
+                        <Route path="/contacto" element={<ContactPage />} />
+                    </Routes>
+                </MemoryRouter>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

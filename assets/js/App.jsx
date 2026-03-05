@@ -1,0 +1,158 @@
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AuthProvider, useAuth } from './AuthContext.jsx';
+import { Layout } from './components/Layout.jsx';
+import { LoginPage } from './components/Login.jsx';
+
+// Admin Components
+import { AdminDashboard } from './components/Admin/Dashboard.jsx';
+import { StudentsManager } from './components/Admin/Students.jsx';
+import { TeachersManager } from './components/Admin/Teachers.jsx';
+import { CoursesManager } from './components/Admin/Courses.jsx';
+import { SubjectsManager } from './components/Admin/Subjects.jsx';
+import { PaymentsManager } from './components/Admin/Payments.jsx';
+import { ReportsManager } from './components/Admin/Reports.jsx';
+
+// Teacher Components
+import { TeacherDashboard } from './components/Teacher/Dashboard.jsx';
+import { TeacherGrades } from './components/Teacher/Grades.jsx';
+
+// Student Components
+import { StudentDashboard } from './components/Student/Dashboard.jsx';
+import { StudentProfile } from './components/Student/Profile.jsx';
+
+/**
+ * Protector de Rutas: Verifica sesión y roles
+ */
+const PrivateRoute = ({ children, allowedRoles }) => {
+    const { session, profile, loading } = useAuth();
+    const location = useLocation();
+
+    if (loading) {
+        return (
+            <div className="h-screen w-full flex items-center justify-center bg-white">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-slate-500 font-medium">Verificando acceso...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!session) {
+        return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+
+    if (allowedRoles && !allowedRoles.includes(profile?.rol)) {
+        return <Navigate to="/login" replace />;
+    }
+
+    return children;
+};
+
+const App = () => {
+    const adminNav = [
+        {
+            links: [{ path: '/admin/dashboard', icon: 'dashboard', label: 'Inicio' }]
+        },
+        {
+            title: 'Académico',
+            links: [
+                { path: '/admin/cursos', icon: 'room_preferences', label: 'Cursos' },
+                { path: '/admin/materias', icon: 'menu_book', label: 'Materias' }
+            ]
+        },
+        {
+            title: 'Personas',
+            links: [
+                { path: '/admin/estudiantes', icon: 'child_care', label: 'Estudiantes' },
+                { path: '/admin/docentes', icon: 'person_apron', label: 'Docentes' }
+            ]
+        },
+        {
+            title: 'Otros',
+            links: [
+                { path: '/admin/pagos', icon: 'payments', label: 'Pagos' },
+                { path: '/admin/boletines', icon: 'description', label: 'Boletines' }
+            ]
+        }
+    ];
+
+    const docenteNav = [
+        {
+            title: 'Principal',
+            links: [{ path: '/docente/dashboard', icon: 'dashboard', label: 'Inicio' }]
+        }
+    ];
+
+    const estudianteNav = [
+        {
+            title: 'Principal',
+            links: [
+                { path: '/estudiante/dashboard', icon: 'analytics', label: 'Calificaciones' },
+                { path: '/estudiante/perfil', icon: 'person', label: 'Mis Datos' }
+            ]
+        }
+    ];
+
+    return (
+        <AuthProvider>
+            <BrowserRouter>
+                <Routes>
+                    <Route path="/login" element={<LoginPage />} />
+
+                    {/* Rutas de Administrador */}
+                    <Route path="/admin/*" element={
+                        <PrivateRoute allowedRoles={['admin']}>
+                            <Layout roleTitle="Administrador" navigation={adminNav}>
+                                <Routes>
+                                    <Route path="dashboard" element={<AdminDashboard />} />
+                                    <Route path="estudiantes" element={<StudentsManager />} />
+                                    <Route path="docentes" element={<TeachersManager />} />
+                                    <Route path="cursos" element={<CoursesManager />} />
+                                    <Route path="materias" element={<SubjectsManager />} />
+                                    <Route path="pagos" element={<PaymentsManager />} />
+                                    <Route path="boletines" element={<ReportsManager />} />
+                                    <Route path="*" element={<Navigate to="dashboard" replace />} />
+                                </Routes>
+                            </Layout>
+                        </PrivateRoute>
+                    } />
+
+                    {/* Rutas de Docente */}
+                    <Route path="/docente/*" element={
+                        <PrivateRoute allowedRoles={['docente']}>
+                            <Layout roleTitle="Docente" navigation={docenteNav}>
+                                <Routes>
+                                    <Route path="dashboard" element={<TeacherDashboard />} />
+                                    <Route path="calificaciones/:cursoId" element={<TeacherGrades />} />
+                                    <Route path="*" element={<Navigate to="dashboard" replace />} />
+                                </Routes>
+                            </Layout>
+                        </PrivateRoute>
+                    } />
+
+                    {/* Rutas de Estudiante */}
+                    <Route path="/estudiante/*" element={
+                        <PrivateRoute allowedRoles={['estudiante']}>
+                            <Layout roleTitle="Estudiante" navigation={estudianteNav}>
+                                <Routes>
+                                    <Route path="dashboard" element={<StudentDashboard />} />
+                                    <Route path="perfil" element={<StudentProfile />} />
+                                    <Route path="*" element={<Navigate to="dashboard" replace />} />
+                                </Routes>
+                            </Layout>
+                        </PrivateRoute>
+                    } />
+
+                    <Route path="/" element={<Navigate to="/login" replace />} />
+                    <Route path="*" element={<div className="p-20 text-center font-bold text-slate-800">404 - Página no encontrada</div>} />
+                </Routes>
+            </BrowserRouter>
+        </AuthProvider>
+    );
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
