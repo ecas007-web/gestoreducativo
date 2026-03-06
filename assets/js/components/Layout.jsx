@@ -23,7 +23,7 @@ export const Layout = ({ children, roleTitle, navigation }) => {
             <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`} id="sidebar">
                 <div className="sidebar-logo">
                     <div className="sidebar-logo-icon">
-                        <img src="/images/escudo.png" alt="Logo" className="w-8 h-8 object-contain brightness-0 invert" />
+                        <img src="/images/escudo.png" alt="Logo" className="w-8 h-8 object-contain" />
                     </div>
                     <div className={!sidebarOpen ? 'hidden' : ''}>
                         <div className="sidebar-logo-text">{SCHOOL_NAME || 'Gestor Educativo'}</div>

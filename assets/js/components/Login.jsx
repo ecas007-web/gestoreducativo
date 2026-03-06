@@ -172,8 +172,8 @@ export const LoginPage = () => {
                 {/* Panel Izquierdo: Branding */}
                 <div className="login-branding">
                     <div className="login-branding-content">
-                        <div className="mb-6">
-                            <img src="/images/escudo.png" alt="Logo" className="w-24 h-24 object-contain brightness-0 invert" />
+                        <div className="mb-6 flex justify-center">
+                            <img src="/images/escudo.png" alt="Logo" className="w-80 h-80 object-contain" />
                         </div>
                         <h1 className="text-4xl font-extrabold text-white mb-2 leading-tight">{SCHOOL_NAME || 'Gestor Educativo'}</h1>
                         <p className="text-blue-100 text-lg opacity-90">Jardín Infantil & Preescolar</p>
