@@ -5,10 +5,12 @@ import { mostrarToast } from '../../utils.jsx';
 export const StudentsManager = () => {
     const [students, setStudents] = useState([]);
     const [courses, setCourses] = useState([]);
+    const [years, setYears] = useState([]);
+    const [activeYear, setActiveYear] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
-    const [formData, setFormData] = useState({ id: null, nombres: '', apellidos: '', tipo_documento: 'RC', numero_documento: '', curso_id: '' });
-    const [filters, setFilters] = useState({ query: '', courseId: '', status: '' });
+    const [formData, setFormData] = useState({ id: null, nombres: '', apellidos: '', tipo_documento: 'RC', numero_documento: '', curso_id: '', anio_academico_id: '' });
+    const [filters, setFilters] = useState({ query: '', courseId: '', status: '', anioId: '' });
 
     useEffect(() => {
         loadData();
@@ -16,12 +18,22 @@ export const StudentsManager = () => {
 
     const loadData = async () => {
         setLoading(true);
-        const [stRes, crRes] = await Promise.all([
+        const [stRes, crRes, anRes] = await Promise.all([
             supabase.from('estudiantes').select('*, cursos(nombre)').order('apellidos'),
-            supabase.from('cursos').select('*').order('nombre')
+            supabase.from('cursos').select('*').order('nombre'),
+            supabase.from('anios_academicos').select('*').order('anio', { ascending: false })
         ]);
+
+        const loadedYears = anRes.data || [];
+        const currentActive = loadedYears.find(y => y.estado);
+
         setStudents(stRes.data || []);
         setCourses(crRes.data || []);
+        setYears(loadedYears);
+        setActiveYear(currentActive);
+
+        // If no filter selected, default to active year
+        setFilters(prev => ({ ...prev, anioId: prev.anioId || currentActive?.id || '' }));
         setLoading(false);
     };
 
@@ -52,7 +64,8 @@ export const StudentsManager = () => {
         const matchesQuery = (name + doc).toLowerCase().includes(filters.query.toLowerCase());
         const matchesCourse = !filters.courseId || s.curso_id == filters.courseId;
         const matchesStatus = !filters.status || (filters.status === 'complete' ? s.registro_completo : !s.registro_completo);
-        return matchesQuery && matchesCourse && matchesStatus;
+        const matchesYear = !filters.anioId || s.anio_academico_id == filters.anioId;
+        return matchesQuery && matchesCourse && matchesStatus && matchesYear;
     });
 
     return (
@@ -62,15 +75,19 @@ export const StudentsManager = () => {
                     <h2 className="text-2xl font-black text-slate-800">Gestión de Estudiantes</h2>
                     <p className="text-slate-500">Pre-registra y administra los perfiles de los niños.</p>
                 </div>
-                <button onClick={() => { setFormData({ id: null, nombres: '', apellidos: '', tipo_documento: 'RC', numero_documento: '', curso_id: '' }); setShowModal(true); }} className="btn btn-primary">
+                <button onClick={() => { setFormData({ id: null, nombres: '', apellidos: '', tipo_documento: 'RC', numero_documento: '', curso_id: '', anio_academico_id: activeYear?.id || '' }); setShowModal(true); }} className="btn btn-primary">
                     <span className="material-symbols-outlined">person_add</span> Pre-registrar Estudiante
                 </button>
             </div>
 
-            <div className="card flex flex-col md:flex-row gap-4">
-                <div className="flex-1">
+            <div className="card flex flex-col md:flex-row gap-4 flex-wrap">
+                <div className="flex-1 min-w-[200px]">
                     <input type="text" className="form-input" placeholder="Buscar por nombre o documento..." value={filters.query} onChange={e => setFilters({ ...filters, query: e.target.value })} />
                 </div>
+                <select className="form-input md:w-40" value={filters.anioId} onChange={e => setFilters({ ...filters, anioId: e.target.value })}>
+                    <option value="">Todos los Años</option>
+                    {years.map(y => <option key={y.id} value={y.id}>{y.anio} {y.estado ? '(Activo)' : ''}</option>)}
+                </select>
                 <select className="form-input md:w-48" value={filters.courseId} onChange={e => setFilters({ ...filters, courseId: e.target.value })}>
                     <option value="">Todos los Cursos</option>
                     {courses.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
@@ -138,12 +155,24 @@ export const StudentsManager = () => {
                                 </div>
                                 <div className="form-group"><label className="form-label">Número</label><input type="text" required className="form-input" value={formData.numero_documento} onChange={e => setFormData({ ...formData, numero_documento: e.target.value })} /></div>
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">Curso Inicial</label>
-                                <select required className="form-input" value={formData.curso_id} onChange={e => setFormData({ ...formData, curso_id: e.target.value })}>
-                                    <option value="">Seleccionar Curso</option>
-                                    {courses.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                                </select>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="form-group">
+                                    <label className="form-label">Año Académico</label>
+                                    <select required className="form-input" value={formData.anio_academico_id} onChange={e => setFormData({ ...formData, anio_academico_id: e.target.value })}>
+                                        <option value="">Seleccionar Año</option>
+                                        {/* Solo listamos el año activo para nuevos registros como sugeriste, o todos para edición */}
+                                        {years.filter(y => y.estado || y.id === formData.anio_academico_id).map(y => (
+                                            <option key={y.id} value={y.id}>{y.anio} {y.estado ? '(Activo)' : ''}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Curso Inicial</label>
+                                    <select required className="form-input" value={formData.curso_id} onChange={e => setFormData({ ...formData, curso_id: e.target.value })}>
+                                        <option value="">Seleccionar Curso</option>
+                                        {courses.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                                    </select>
+                                </div>
                             </div>
                             <div className="flex justify-end gap-3 pt-6 border-t mt-6">
                                 <button type="button" onClick={() => setShowModal(false)} className="btn btn-ghost">Cancelar</button>

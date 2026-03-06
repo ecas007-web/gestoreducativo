@@ -13,10 +13,12 @@ import { CoursesManager } from './components/Admin/Courses.jsx';
 import { SubjectsManager } from './components/Admin/Subjects.jsx';
 import { PaymentsManager } from './components/Admin/Payments.jsx';
 import { ReportsManager } from './components/Admin/Reports.jsx';
+import { AcademicYearsManager } from './components/Admin/AcademicYears.jsx';
 
 // Teacher Components
 import { TeacherDashboard } from './components/Teacher/Dashboard.jsx';
 import { TeacherGrades } from './components/Teacher/Grades.jsx';
+import { TeacherProfile } from './components/Teacher/Profile.jsx';
 
 // Student Components
 import { StudentDashboard } from './components/Student/Dashboard.jsx';
@@ -59,6 +61,7 @@ const App = () => {
         {
             title: 'Académico',
             links: [
+                { path: '/admin/anios-academicos', icon: 'event', label: 'Años Académicos' },
                 { path: '/admin/cursos', icon: 'room_preferences', label: 'Cursos' },
                 { path: '/admin/materias', icon: 'menu_book', label: 'Materias' }
             ]
@@ -82,7 +85,10 @@ const App = () => {
     const docenteNav = [
         {
             title: 'Principal',
-            links: [{ path: '/docente/dashboard', icon: 'dashboard', label: 'Inicio' }]
+            links: [
+                { path: '/docente/dashboard', icon: 'dashboard', label: 'Inicio' },
+                { path: '/docente/perfil', icon: 'person', label: 'Mi Perfil' }
+            ]
         }
     ];
 
@@ -110,6 +116,7 @@ const App = () => {
                                     <Route path="dashboard" element={<AdminDashboard />} />
                                     <Route path="estudiantes" element={<StudentsManager />} />
                                     <Route path="docentes" element={<TeachersManager />} />
+                                    <Route path="anios-academicos" element={<AcademicYearsManager />} />
                                     <Route path="cursos" element={<CoursesManager />} />
                                     <Route path="materias" element={<SubjectsManager />} />
                                     <Route path="pagos" element={<PaymentsManager />} />
@@ -127,6 +134,7 @@ const App = () => {
                                 <Routes>
                                     <Route path="dashboard" element={<TeacherDashboard />} />
                                     <Route path="calificaciones/:cursoId" element={<TeacherGrades />} />
+                                    <Route path="perfil" element={<TeacherProfile />} />
                                     <Route path="*" element={<Navigate to="dashboard" replace />} />
                                 </Routes>
                             </Layout>

@@ -108,12 +108,13 @@ export const LoginPage = () => {
             if (authErr) throw authErr;
 
             const { error: updErr } = await supabase.from('estudiantes').update({
+                user_id: user.id,
                 correo: regData.email,
                 direccion: regData.address,
                 telefono: regData.phone,
                 tipo_sangre: regData.blood,
-                padre_nombre: regData.padre,
-                madre_nombre: regData.madre,
+                nombre_padre: regData.padre,
+                nombre_madre: regData.madre,
                 registro_completo: true
             }).eq('id', verifiedStudent.id);
 

@@ -5,6 +5,8 @@ import { useAuth } from '../../AuthContext.jsx';
 export const StudentDashboard = () => {
     const { profile } = useAuth();
     const [periodo, setPeriodo] = useState('P1');
+    const [years, setYears] = useState([]);
+    const [selectedYear, setSelectedYear] = useState('');
     const [estData, setEstData] = useState(null);
     const [notas, setNotas] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -14,25 +16,35 @@ export const StudentDashboard = () => {
     }, [profile]);
 
     useEffect(() => {
-        if (estData) loadGrades();
-    }, [estData, periodo]);
+        if (estData && selectedYear) loadGrades();
+    }, [estData, periodo, selectedYear]);
 
     const loadStudentInfo = async () => {
         setLoading(true);
-        const { data } = await supabase.from('estudiantes')
-            .select('*, cursos(nombre)')
-            .eq('numero_documento', profile.numero_documento)
-            .single();
-        setEstData(data);
+        const [estRes, anRes] = await Promise.all([
+            supabase.from('estudiantes').select('*, cursos(nombre)').eq('numero_documento', profile.numero_documento).single(),
+            supabase.from('anios_academicos').select('*').order('anio', { ascending: false })
+        ]);
+
+        const loadedYears = anRes.data || [];
+        setYears(loadedYears);
+
+        // Find the active year (or the anio_academico_id of the student themselves as fallback)
+        const activeY = loadedYears.find(y => y.estado);
+        const defYear = activeY?.id || estRes.data?.anio_academico_id || (loadedYears[0]?.id || '');
+        setSelectedYear(defYear);
+
+        setEstData(estRes.data);
         setLoading(false);
     };
 
     const loadGrades = async () => {
+        if (!selectedYear) return;
         const { data } = await supabase.from('calificaciones')
             .select('*, materias(nombre)')
             .eq('estudiante_id', estData.id)
             .eq('periodo', periodo)
-            .eq('anio', new Date().getFullYear());
+            .eq('anio_academico_id', selectedYear);
         setNotas(data || []);
     };
 
@@ -55,12 +67,17 @@ export const StudentDashboard = () => {
                         <h2 className="text-2xl font-black text-slate-800">Mi Progreso</h2>
                         <p className="text-slate-500 font-medium">Curso: {estData?.cursos?.nombre || 'Pendiente'}</p>
                     </div>
-                    <select className="form-input w-48" value={periodo} onChange={e => setPeriodo(e.target.value)}>
-                        <option value="P1">Primer Periodo</option>
-                        <option value="P2">Segundo Periodo</option>
-                        <option value="P3">Tercer Periodo</option>
-                        <option value="P4">Cuarto Periodo</option>
-                    </select>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <select className="form-input w-full sm:w-32" value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
+                            {years.map(y => <option key={y.id} value={y.id}>{y.anio}</option>)}
+                        </select>
+                        <select className="form-input w-full sm:w-48" value={periodo} onChange={e => setPeriodo(e.target.value)}>
+                            <option value="P1">Primer Periodo</option>
+                            <option value="P2">Segundo Periodo</option>
+                            <option value="P3">Tercer Periodo</option>
+                            <option value="P4">Cuarto Periodo</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

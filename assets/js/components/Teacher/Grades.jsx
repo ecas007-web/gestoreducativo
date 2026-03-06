@@ -12,7 +12,9 @@ export const TeacherGrades = () => {
     const [selectedMateria, setSelectedMateria] = useState('');
     const [periodo, setPeriodo] = useState('P1');
     const [query, setQuery] = useState('');
+    const [showDropdown, setShowDropdown] = useState(false);
     const [notas, setNotas] = useState([]);
+    const [activeYear, setActiveYear] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -22,14 +24,16 @@ export const TeacherGrades = () => {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [cRes, mRes, sRes] = await Promise.all([
+            const [cRes, mRes, sRes, yRes] = await Promise.all([
                 supabase.from('cursos').select('*').eq('id', cursoId).single(),
                 supabase.from('curso_materias').select('materias(id, nombre)').eq('curso_id', cursoId),
-                supabase.from('estudiantes').select('*').eq('curso_id', cursoId).order('apellidos')
+                supabase.from('estudiantes').select('*').eq('curso_id', cursoId).order('apellidos'),
+                supabase.from('anios_academicos').select('*').eq('estado', true).maybeSingle()
             ]);
             setCurso(cRes.data);
             setSubjects(mRes.data?.map(m => m.materias) || []);
             setStudents(sRes.data || []);
+            setActiveYear(yRes.data);
         } catch (err) {
             console.error(err);
         } finally {
@@ -42,22 +46,24 @@ export const TeacherGrades = () => {
     }, [selectedMateria, periodo]);
 
     const loadGrades = async () => {
+        if (!activeYear) return;
         const { data } = await supabase.from('calificaciones')
             .select('*')
-            .match({ materia_id: selectedMateria, periodo, anio: new Date().getFullYear() });
+            .match({ materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id });
         setNotas(data || []);
     };
 
     const saveGrade = async (estId, notaValue, obs) => {
         const notaNum = parseFloat(notaValue);
         if (isNaN(notaNum) || notaNum < 0 || notaNum > 5) return mostrarToast('Nota inválida (0-5)', 'warning');
+        if (!activeYear) return mostrarToast('No hay año académico activo', 'error');
 
         try {
             const { data: existe } = await supabase.from('calificaciones').select('id')
-                .match({ estudiante_id: estId, materia_id: selectedMateria, periodo, anio: new Date().getFullYear() })
+                .match({ estudiante_id: estId, materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id })
                 .maybeSingle();
 
-            const payload = { estudiante_id: estId, materia_id: selectedMateria, periodo, anio: new Date().getFullYear(), nota: notaNum, descripcion: obs };
+            const payload = { estudiante_id: estId, materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id, nota: notaNum, descripcion: obs };
 
             if (existe) await supabase.from('calificaciones').update(payload).eq('id', existe.id);
             else await supabase.from('calificaciones').insert([payload]);
@@ -69,7 +75,12 @@ export const TeacherGrades = () => {
         }
     };
 
-    const filteredStudents = students.filter(s => (s.nombres + s.apellidos).toLowerCase().includes(query.toLowerCase()));
+    const filteredStudents = students.filter(s => {
+        const queryLower = query.toLowerCase();
+        const name1 = `${s.apellidos} ${s.nombres}`.toLowerCase();
+        const name2 = `${s.nombres} ${s.apellidos}`.toLowerCase();
+        return name1.includes(queryLower) || name2.includes(queryLower);
+    });
 
     return (
         <div className="space-y-6">
@@ -78,7 +89,7 @@ export const TeacherGrades = () => {
                     <span className="material-symbols-outlined">arrow_back</span>
                 </button>
                 <div>
-                    <h2 className="text-2xl font-black text-slate-800">Cargar Notas: {curso?.nombre}</h2>
+                    <h2 className="text-2xl font-black text-slate-800">Cargar Notas: {curso?.nombre} {activeYear && <span className="text-blue-600">({activeYear.anio})</span>}</h2>
                     <p className="text-slate-500 font-medium text-sm">Ingresa las calificaciones y logros institucionales.</p>
                 </div>
             </div>
@@ -100,9 +111,35 @@ export const TeacherGrades = () => {
                         <option value="P4">Cuarto Periodo</option>
                     </select>
                 </div>
-                <div className="form-group">
+                <div className="form-group relative">
                     <label className="form-label">Filtrar Estudiante</label>
-                    <input type="text" className="form-input" placeholder="Nombre..." value={query} onChange={e => setQuery(e.target.value)} />
+                    <input
+                        type="text"
+                        className="form-input w-full"
+                        placeholder="Buscar o seleccionar..."
+                        value={query}
+                        onChange={e => { setQuery(e.target.value); setShowDropdown(true); }}
+                        onFocus={() => setShowDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                    />
+                    {showDropdown && filteredStudents.length > 0 && (
+                        <ul className="absolute z-50 w-full left-0 top-[100%] bg-white border border-slate-200 mt-1 rounded-xl shadow-lg max-h-60 overflow-y-auto py-1 text-left">
+                            {filteredStudents.map(s => (
+                                <li
+                                    key={s.id}
+                                    className="px-4 py-2.5 hover:bg-blue-50 cursor-pointer text-slate-900 text-2xl transition-colors border-b border-slate-100 last:border-0"
+                                    onMouseDown={(e) => {
+                                        // Use onMouseDown instead of onClick to prevent blur from firing before selection
+                                        e.preventDefault();
+                                        setQuery(`${s.apellidos} ${s.nombres}`);
+                                        setShowDropdown(false);
+                                    }}
+                                >
+                                    <span className="font-bold text-slate-800">{s.apellidos}</span> {s.nombres}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
                 </div>
             </div>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../config.jsx';
+import { supabase, authAdmin } from '../../config.jsx';
 import { mostrarToast } from '../../utils.jsx';
 
 export const TeachersManager = () => {
@@ -7,7 +7,7 @@ export const TeachersManager = () => {
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
-    const [formData, setFormData] = useState({ id: null, nombres: '', apellidos: '', correo: '', tipo_documento: 'CC', numero_documento: '', cursos_ids: [] });
+    const [formData, setFormData] = useState({ id: null, nombres: '', apellidos: '', correo: '', tipo_documento: 'CC', numero_documento: '', password: '', cursos_ids: [] });
 
     useEffect(() => {
         loadData();
@@ -40,13 +40,34 @@ export const TeachersManager = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            const { id, cursos_ids, ...payload } = formData;
+            const { id, cursos_ids, password, ...payload } = formData;
             let teacherId = id;
 
             if (id) {
                 await supabase.from('docentes').update(payload).eq('id', id);
             } else {
-                const { data, error } = await supabase.from('docentes').insert([payload]).select().single();
+                // Registrar el usuario en Supabase Auth
+                // NOTA IMPORTANTE: Para evitar el envío de correos, se debe desactivar "Confirm Email" en el Dashboard de Supabase.
+                // Usamos `authAdmin` (que no guarda sesión) para no desconectar al administrador actual.
+                const { data: authData, error: authErr } = await authAdmin.auth.signUp({
+                    email: formData.correo,
+                    password: formData.password,
+                    options: {
+                        data: {
+                            rol: 'docente',
+                            nombres: formData.nombres,
+                            apellidos: formData.apellidos,
+                            tipo_documento: formData.tipo_documento,
+                            numero_documento: formData.numero_documento
+                        }
+                    }
+                });
+
+                if (authErr) throw authErr;
+
+                // Insertar en la tabla pública de docentes usando el user_id retornado
+                const payloadWithUser = { ...payload, user_id: authData.user.id };
+                const { data, error } = await supabase.from('docentes').insert([payloadWithUser]).select().single();
                 if (error) throw error;
                 teacherId = data.id;
             }
@@ -82,7 +103,7 @@ export const TeachersManager = () => {
                     <h2 className="text-2xl font-black text-slate-800">Gestión de Docentes</h2>
                     <p className="text-slate-500">Registra profesores y asigna sus cursos de enseñanza.</p>
                 </div>
-                <button onClick={() => { setFormData({ id: null, nombres: '', apellidos: '', correo: '', tipo_documento: 'CC', numero_documento: '', cursos_ids: [] }); setShowModal(true); }} className="btn btn-primary">
+                <button onClick={() => { setFormData({ id: null, nombres: '', apellidos: '', correo: '', tipo_documento: 'CC', numero_documento: '', password: '', cursos_ids: [] }); setShowModal(true); }} className="btn btn-primary">
                     <span className="material-symbols-outlined">person_add</span> Nuevo Docente
                 </button>
             </div>
@@ -130,22 +151,27 @@ export const TeachersManager = () => {
                 <div className="modal open">
                     <div className="modal-content animate-zoomIn max-w-2xl">
                         <h3 className="text-xl font-black text-slate-800 mb-6">{formData.id ? 'Editar Docente' : 'Registrar Docente'}</h3>
-                        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 px-2">
+                            {/* Columna Izquierda: Datos Personales */}
                             <div className="space-y-4">
-                                <div className="form-group"><label className="form-label">Nombres</label><input type="text" required className="form-input" value={formData.nombres} onChange={e => setFormData({ ...formData, nombres: e.target.value })} /></div>
-                                <div className="form-group"><label className="form-label">Apellidos</label><input type="text" required className="form-input" value={formData.apellidos} onChange={e => setFormData({ ...formData, apellidos: e.target.value })} /></div>
-                                <div className="form-group"><label className="form-label">Correo Electrónico</label><input type="email" required className="form-input" value={formData.correo} onChange={e => setFormData({ ...formData, correo: e.target.value })} /></div>
+                                <div className="form-group"><label className="form-label">Nombres</label><input type="text" required className="form-input w-full" value={formData.nombres} onChange={e => setFormData({ ...formData, nombres: e.target.value })} /></div>
+                                <div className="form-group"><label className="form-label">Apellidos</label><input type="text" required className="form-input w-full" value={formData.apellidos} onChange={e => setFormData({ ...formData, apellidos: e.target.value })} /></div>
+                                <div className="form-group"><label className="form-label">Correo Electrónico</label><input type="email" required className="form-input w-full" value={formData.correo} onChange={e => setFormData({ ...formData, correo: e.target.value })} /></div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="form-group">
                                         <label className="form-label">Tipo Doc.</label>
-                                        <select className="form-input" value={formData.tipo_documento} onChange={e => setFormData({ ...formData, tipo_documento: e.target.value })}>
+                                        <select className="form-input w-full" value={formData.tipo_documento} onChange={e => setFormData({ ...formData, tipo_documento: e.target.value })}>
                                             <option value="CC">CC</option><option value="CE">CE</option>
                                         </select>
                                     </div>
-                                    <div className="form-group"><label className="form-label">Número</label><input type="text" required className="form-input" value={formData.numero_documento} onChange={e => setFormData({ ...formData, numero_documento: e.target.value })} /></div>
+                                    <div className="form-group"><label className="form-label">Número</label><input type="text" required className="form-input w-full" value={formData.numero_documento} onChange={e => setFormData({ ...formData, numero_documento: e.target.value })} /></div>
                                 </div>
+                                {!formData.id && (
+                                    <div className="form-group"><label className="form-label">Asignar Contraseña</label><input type="password" required className="form-input w-full" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} /></div>
+                                )}
                             </div>
 
+                            {/* Columna Derecha: Asignación de Cursos */}
                             <div className="space-y-4">
                                 <label className="form-label">Asignar Cursos</label>
                                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 max-h-60 overflow-y-auto">
@@ -163,7 +189,7 @@ export const TeachersManager = () => {
                                 </div>
                             </div>
 
-                            <div className="col-span-full flex justify-end gap-3 pt-6 border-t">
+                            <div className="col-span-1 md:col-span-2 flex justify-end gap-3 pt-6 border-t mt-4">
                                 <button type="button" onClick={() => setShowModal(false)} className="btn btn-ghost">Cancelar</button>
                                 <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? 'Guardando...' : 'Guardar Docente'}</button>
                             </div>
