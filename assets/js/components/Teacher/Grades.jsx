@@ -15,6 +15,8 @@ export const TeacherGrades = () => {
     const [showDropdown, setShowDropdown] = useState(false);
     const [notas, setNotas] = useState([]);
     const [activeYear, setActiveYear] = useState(null);
+    const [scales, setScales] = useState([]);
+    const [achievement, setAchievement] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -24,16 +26,18 @@ export const TeacherGrades = () => {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [cRes, mRes, sRes, yRes] = await Promise.all([
+            const [cRes, mRes, sRes, yRes, scalesRes] = await Promise.all([
                 supabase.from('cursos').select('*').eq('id', cursoId).single(),
                 supabase.from('curso_materias').select('materias(id, nombre)').eq('curso_id', cursoId),
                 supabase.from('estudiantes').select('*').eq('curso_id', cursoId).order('apellidos'),
-                supabase.from('anios_academicos').select('*').eq('estado', true).maybeSingle()
+                supabase.from('anios_academicos').select('*').eq('estado', true).maybeSingle(),
+                supabase.from('escalas_valorativas').select('*').order('rango_minimo', { ascending: true })
             ]);
             setCurso(cRes.data);
             setSubjects(mRes.data?.map(m => m.materias) || []);
             setStudents(sRes.data || []);
             setActiveYear(yRes.data);
+            setScales(scalesRes.data || []);
         } catch (err) {
             console.error(err);
         } finally {
@@ -47,15 +51,20 @@ export const TeacherGrades = () => {
 
     const loadGrades = async () => {
         if (!activeYear) return;
-        const { data } = await supabase.from('calificaciones')
-            .select('*')
-            .match({ materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id });
-        setNotas(data || []);
+        const [gRes, aRes] = await Promise.all([
+            supabase.from('calificaciones')
+                .select('*')
+                .match({ materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id }),
+            supabase.from('logros_generales')
+                .select('logro')
+                .match({ curso_id: cursoId, materia_id: selectedMateria, anio_academico_id: activeYear.id })
+                .maybeSingle()
+        ]);
+        setNotas(gRes.data || []);
+        setAchievement(aRes.data?.logro || null);
     };
 
-    const saveGrade = async (estId, notaValue, obs) => {
-        const notaNum = parseFloat(notaValue);
-        if (isNaN(notaNum) || notaNum < 0 || notaNum > 5) return mostrarToast('Nota inválida (0-5)', 'warning');
+    const saveGrade = async (estId, data) => {
         if (!activeYear) return mostrarToast('No hay año académico activo', 'error');
 
         try {
@@ -63,12 +72,20 @@ export const TeacherGrades = () => {
                 .match({ estudiante_id: estId, materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id })
                 .maybeSingle();
 
-            const payload = { estudiante_id: estId, materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id, nota: notaNum, descripcion: obs };
+            const payload = {
+                estudiante_id: estId,
+                materia_id: selectedMateria,
+                curso_id: cursoId,
+                periodo,
+                anio_academico_id: activeYear.id,
+                ...data,
+                updated_at: new Date()
+            };
 
             if (existe) await supabase.from('calificaciones').update(payload).eq('id', existe.id);
             else await supabase.from('calificaciones').insert([payload]);
 
-            mostrarToast('Calificación guardada', 'success');
+            mostrarToast('Registro actualizado', 'success');
             loadGrades();
         } catch (err) {
             mostrarToast(err.message, 'error');
@@ -94,7 +111,7 @@ export const TeacherGrades = () => {
                 </div>
             </div>
 
-            <div className="card grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="card grid grid-cols-1 md:grid-cols-3 gap-6 md:w-1/2">
                 <div className="form-group">
                     <label className="form-label">Asignatura</label>
                     <select className="form-input" value={selectedMateria} onChange={e => setSelectedMateria(e.target.value)}>
@@ -144,22 +161,46 @@ export const TeacherGrades = () => {
             </div>
 
             <div className="card p-0 overflow-hidden">
-                <div className="table-wrapper">
-                    <table className="data-table">
+                <div className="overflow-x-auto">
+                    <table className="data-table border-collapse min-w-[1200px]">
                         <thead>
-                            <tr>
-                                <th className="w-1/3">Estudiante</th>
-                                <th className="w-24">Nota (0-5)</th>
-                                <th>Observaciones / Logros</th>
-                                <th className="text-right">Acción</th>
+                            <tr className="bg-slate-50">
+                                <th className="sticky left-0 bg-slate-50 z-10 w-64 border-r">Estudiante</th>
+                                <th colSpan="5" className="text-center bg-blue-50/30 border-r">Tareas Clase (30%)</th>
+                                <th colSpan="5" className="text-center bg-emerald-50/30 border-r">Tareas Casa (30%)</th>
+                                <th className="text-center bg-amber-50/30 border-r">Cuad. (10%)</th>
+                                <th className="text-center bg-violet-50/30 border-r">Examen (30%)</th>
+                                <th className="text-center bg-slate-100 border-r">Final</th>
+                                <th className="text-center bg-slate-50 border-r">Escala</th>
+                                <th className="text-center bg-slate-50 border-r w-96">Logro Concatenado</th>
+                                <th className="text-center">Acción</th>
+                            </tr>
+                            <tr className="text-[10px] uppercase tracking-tighter text-slate-400">
+                                <th className="sticky left-0 bg-slate-50 z-10 border-r"></th>
+                                <th className="border-r w-10 p-1 text-center">TC1</th>
+                                <th className="border-r w-10 p-1 text-center">TC2</th>
+                                <th className="border-r w-10 p-1 text-center">TC3</th>
+                                <th className="border-r w-10 p-1 text-center">TC4</th>
+                                <th className="border-r w-12 p-1 text-center bg-blue-100/50 text-blue-700 font-bold">Prom</th>
+                                <th className="border-r w-10 p-1 text-center">TH1</th>
+                                <th className="border-r w-10 p-1 text-center">TH2</th>
+                                <th className="border-r w-10 p-1 text-center">TH3</th>
+                                <th className="border-r w-10 p-1 text-center">TH4</th>
+                                <th className="border-r w-12 p-1 text-center bg-emerald-100/50 text-emerald-700 font-bold">Prom</th>
+                                <th className="border-r w-16 p-1 text-center">Nota</th>
+                                <th className="border-r w-16 p-1 text-center">Nota</th>
+                                <th className="border-r w-16 p-1 font-bold text-center">Def</th>
+                                <th className="border-r"></th>
+                                <th className="border-r"></th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
                             {selectedMateria ? filteredStudents.map(s => {
                                 const notaObj = notas.find(n => n.estudiante_id === s.id);
-                                return <GradeRow key={s.id} student={s} initialNota={notaObj?.nota} initialObs={notaObj?.descripcion} onSave={saveGrade} />;
+                                return <GradeRow key={s.id} student={s} initialData={notaObj} scales={scales} globalAchievement={achievement} onSave={saveGrade} />;
                             }) : (
-                                <tr><td colSpan="4" className="text-center py-20 text-slate-400 font-medium">Selecciona una materia para cargar el listado.</td></tr>
+                                <tr><td colSpan="16" className="text-center py-20 text-slate-400 font-medium">Selecciona una materia para cargar el listado.</td></tr>
                             )}
                         </tbody>
                     </table>
@@ -169,32 +210,146 @@ export const TeacherGrades = () => {
     );
 };
 
-const GradeRow = ({ student, initialNota, initialObs, onSave }) => {
-    const [nota, setNota] = useState(initialNota || '');
-    const [obs, setObs] = useState(initialObs || '');
+const GradeRow = ({ student, initialData, scales, globalAchievement, onSave }) => {
+    const defaultData = {
+        tc1: '', tc2: '', tc3: '', tc4: '',
+        th1: '', th2: '', th3: '', th4: '',
+        cuaderno: '', examen: ''
+    };
 
-    useEffect(() => { setNota(initialNota || ''); setObs(initialObs || ''); }, [initialNota, initialObs]);
+    const [row, setRow] = useState(initialData || defaultData);
+
+    useEffect(() => {
+        setRow(initialData || defaultData);
+    }, [initialData]);
+
+    const calculateFinal = () => {
+        const tcKeys = ['tc1', 'tc2', 'tc3', 'tc4'];
+        const thKeys = ['th1', 'th2', 'th3', 'th4'];
+
+        const tcVals = tcKeys.map(k => row[k]).filter(v => v !== '' && v !== null && v !== undefined);
+        const thVals = thKeys.map(k => row[k]).filter(v => v !== '' && v !== null && v !== undefined);
+
+        const tcAvgVal = tcVals.length > 0 ? tcVals.reduce((acc, v) => acc + parseFloat(v), 0) / tcVals.length : 0;
+        const thAvgVal = thVals.length > 0 ? thVals.reduce((acc, v) => acc + parseFloat(v), 0) / thVals.length : 0;
+
+        const allKeys = [...tcKeys, ...thKeys, 'cuaderno', 'examen'];
+        const allSet = allKeys.every(k => row[k] !== '' && row[k] !== null && row[k] !== undefined);
+
+        const tcAvg = tcAvgVal.toFixed(1);
+        const thAvg = thAvgVal.toFixed(1);
+
+        if (!allSet) return { final: null, escala: '', logro: '', tcAvg, thAvg, partial: true };
+
+        const cuad = parseFloat(row.cuaderno);
+        const exam = parseFloat(row.examen);
+
+        const final = (tcAvgVal * 0.3) + (thAvgVal * 0.3) + (cuad * 0.1) + (exam * 0.3);
+        const finalFixed = parseFloat(final.toFixed(1));
+
+        const scaleMatch = scales.find(s => finalFixed >= s.rango_minimo && finalFixed <= s.rango_maximo);
+        const escalaTexto = scaleMatch ? scaleMatch.escala : '';
+        const achievementText = scaleMatch && globalAchievement ? `${scaleMatch.verbo} ${globalAchievement}` : '';
+
+        return {
+            final: finalFixed,
+            escala: escalaTexto,
+            logro: achievementText,
+            tcAvg,
+            thAvg,
+            partial: false
+        };
+    };
+
+    const calc = calculateFinal();
+
+    const handleInput = (field, val) => {
+        const num = val === '' ? '' : parseFloat(val);
+        if (num !== '' && (num < 0 || num > 5)) return;
+        setRow({ ...row, [field]: val });
+    };
+
+    const handleSave = () => {
+        const dataToSave = {
+            tc1: row.tc1 || 0, tc2: row.tc2 || 0, tc3: row.tc3 || 0, tc4: row.tc4 || 0,
+            th1: row.th1 || 0, th2: row.th2 || 0, th3: row.th3 || 0, th4: row.th4 || 0,
+            cuaderno: row.cuaderno || 0, examen: row.examen || 0,
+            nota: calc.final || 0, // Fallback to nota column for compatibility
+            nota_final: calc.final,
+            escala_valorativa: calc.escala,
+            logro_calculado: calc.logro
+        };
+        onSave(student.id, dataToSave);
+    };
 
     return (
-        <tr>
-            <td className="font-bold text-slate-800">{student.apellidos}, {student.nombres}</td>
-            <td>
-                <input
-                    type="number" step="0.1" className="form-input text-center font-black"
-                    value={nota} onChange={e => setNota(e.target.value)} placeholder="0.0"
-                />
+        <tr className="hover:bg-slate-50 transition-colors group">
+            <td className="sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r py-4 shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
+                <div className="flex flex-col">
+                    <span className="font-bold text-slate-800 leading-tight">{student.apellidos}</span>
+                    <span className="text-slate-500 text-[11px] font-medium">{student.nombres}</span>
+                </div>
             </td>
-            <td>
-                <textarea
-                    className="form-input h-10 py-2 resize-none text-sm"
-                    value={obs} onChange={e => setObs(e.target.value)} placeholder="Logros..."
-                ></textarea>
+
+            {/* Tareas Clase */}
+            <GradeCell value={row.tc1} onChange={v => handleInput('tc1', v)} className="bg-blue-50/10" />
+            <GradeCell value={row.tc2} onChange={v => handleInput('tc2', v)} className="bg-blue-50/10" />
+            <GradeCell value={row.tc3} onChange={v => handleInput('tc3', v)} className="bg-blue-50/10" />
+            <GradeCell value={row.tc4} onChange={v => handleInput('tc4', v)} className="bg-blue-50/10" />
+            <td className="text-center bg-blue-100/30 font-black text-slate-700 border-r">{calc.tcAvg}</td>
+
+            {/* Tareas Casa */}
+            <GradeCell value={row.th1} onChange={v => handleInput('th1', v)} className="bg-emerald-50/10" />
+            <GradeCell value={row.th2} onChange={v => handleInput('th2', v)} className="bg-emerald-50/10" />
+            <GradeCell value={row.th3} onChange={v => handleInput('th3', v)} className="bg-emerald-50/10" />
+            <GradeCell value={row.th4} onChange={v => handleInput('th4', v)} className="bg-emerald-50/10" />
+            <td className="text-center bg-emerald-100/30 font-black text-slate-700 border-r">{calc.thAvg}</td>
+
+            {/* Cuaderno y Examen */}
+            <GradeCell value={row.cuaderno} onChange={v => handleInput('cuaderno', v)} className="bg-amber-50/10 border-r" />
+            <GradeCell value={row.examen} onChange={v => handleInput('examen', v)} className="bg-violet-50/10 border-r" />
+
+            {/* Nota Final */}
+            <td className="text-center bg-slate-100 font-black text-xl text-slate-900 border-r">
+                {calc.final !== null ? calc.final : '--'}
             </td>
-            <td className="text-right">
-                <button onClick={() => onSave(student.id, nota, obs)} className="btn btn-primary btn-sm flex items-center justify-center w-10 h-10 p-0 rounded-xl shadow-sm">
+
+            {/* Escala */}
+            <td className="text-center border-r px-2 min-w-[100px]">
+                {calc.escala ? (
+                    <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg shadow-sm whitespace-nowrap ${calc.escala === 'Superior' ? 'bg-emerald-500 text-white' :
+                        calc.escala === 'Alto' ? 'bg-blue-500 text-white' :
+                            calc.escala === 'Básico' ? 'bg-amber-500 text-white' : 'bg-red-500 text-white'
+                        }`}>
+                        {calc.escala}
+                    </span>
+                ) : '--'}
+            </td>
+
+            {/* Logro */}
+            <td className="px-4 border-r min-w-[384px]">
+                <p className="text-slate-600 text-[11px] italic font-medium leading-tight">
+                    {calc.logro ? `"${calc.logro}"` : <span className="text-slate-300">Completa las notas...</span>}
+                </p>
+            </td>
+
+            <td className="text-center p-2">
+                <button onClick={handleSave} className="btn btn-primary btn-sm w-full h-10 flex items-center justify-center p-0 rounded-xl">
                     <span className="material-symbols-outlined text-lg">save</span>
                 </button>
             </td>
         </tr>
     );
 };
+
+const GradeCell = ({ value, onChange, className = '' }) => (
+    <td className={`p-1 border-r ${className}`}>
+        <input
+            type="number" step="0.1"
+            className="w-full h-10 text-center bg-transparent border-none focus:ring-2 focus:ring-blue-400 rounded-lg font-bold text-slate-700 p-0"
+            value={value || ''}
+            onChange={e => onChange(e.target.value)}
+            placeholder="-"
+        />
+    </td>
+);

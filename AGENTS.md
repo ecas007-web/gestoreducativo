@@ -53,6 +53,53 @@ Las funcionalidades que debe tener la app son estas:
         •	En el modulo de estudiante debe tener el filtro por año
         •	En el modulo de registro calificaciones debe esta el filtro por año y solo se mostrara el año que este activo, la calificación que se registre debe quedar con el año correspondiente
 
+    - Parametrización de logros
+        •	Se debe tener un modulo llamado “parametrización  de lo logro general” el cual podrá ser parametrizado por el docente o el administrador.
+                El modulo debe tener los campos:  
+            o	Materia: si se loguea un docente este solo podrá gestionar los logros del curso que tenga asigando
+            o	Curso 
+            o	Logro (campo de texto largo multilínea)
+                solo se debe se podrá parametrizar un logro por materia
+        •	también debe haber otro modulo que solo vera el administrador llamado “parametrización de escala valorativa”, en este modulo solo se manejaran 4 registros que contendrán los rangos entre 0 y 5 para cada escala, el objetivo de este modulo es para que cuando el docente asigne una calificación entre 0 y 5 el sistema obtenga la escala a cual pertenece y el verbo para que sea concatenado con el logro general.
+        o	los campos de este modulo son: 
+            	escala: el cual solo puede ser bajo, básico, alto, superior
+            	rango mínimo: numero de 1 decimal  (valor entre 0,0 y 5,0)
+            	rango máximo: numero de 1 decimal  (valor entre 0,0 y 5,6)
+            	verbo: es un texto que se concatenara mas adelante al inicio de cada logro general cuando se este calificando
+
+    - asignación de calificaciones:
+        en este modulo se diligencias las notas por estudiantes de la siguiente manera:
+        nota: las notas solo se manejan de 0 a 5.
+            o	tarea en clase: 4 notas cuyo promedio  equivale a un 30%
+            o	tarea en casa: 4 notas cuyo promedio  equivale a un 30%
+            o	revisión de cuaderno: 1 nota que equivale a un 10%
+            o	examen final: 1 nota que equivale a un 30%
+        •	la nota final del periodo = la suma los porcentaje de las 4 notas
+        •	la nota final solo se calcula cuando ya se tengan los 4 porcentajes
+        •	campo nota valorativa, solo se muestra cuando se tengan la nota final, este campo se calcula de la siguiente manera: el sistema debe buscar la escala y el verbo (bajo, básico, alto, superior) en el módulo “parametrización de escala valorativa” donde la calificación sea >= a rango mínimo y <= rango máximo, en este campo solo se almacena la escala
+
+        •	logro: solo se muestra cuando se tengan la nota final , el sistema debe buscar el logro en el modulo “parametrización  de lo logro general” para el curso y la materia correspondiente en este campo debe mostrarse la concatenación de (verbo + logro) , este se debe almacenar concatenado
+
+    - Modulo de pagos:
+        este se utilizara para el registro de los pagos de las pensiones de los estudiantes del año en curso.
+        Se debe permitir el registro de pago de la pensión del estudiante con los siguientes campos: 
+
+            •	estudiante: lista de autocompletar debe permitir buscar por grado,  nombre o documento 
+            •	mes a cancelar
+            •	valor a cancelar: por defecto debe esta el valor de la pensión del año parametrizado
+            •	método de pago: transferencia o efectivo, por defecto transferencia
+            •	fecha de pago
+            •	se debe almacenar automáticamente la fecha en que se registra el pago y el usuario que lo realiza
+
+        se debe permitir buscar por:
+            •	al día: estudiantes que han cancelado el mes seleccionado, mostrar el total de ingresos del mes
+            •	en mora: estudiantes que no han cancelado los  meses seleccionados  o el valor del cancelado en el mes es menor al valor de la pensión parametrizada
+
+        nota: en el modulo “Parámetros de Años Académicos” se debe adicionar el campo valor de pensión, colocar para este año el valor de $210000
+        hay estudiantes con descuento especial para todo el año, se debe permitir registra el descuento para que no salga en mora al sacar el reporte de los estudiantes  con mora
+
+
+
 
 •	Funcionalidades de la app
     1.	Realizar el backen en supabase
