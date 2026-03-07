@@ -455,9 +455,9 @@ body {
 }
 
 .sidebar-logo-icon {
-  width: 4rem;
-  height: 4rem;
-  background: var(--primary);
+  width: 12rem;
+  height: 12rem;
+
   border-radius: 1rem;
   display: flex;
   align-items: center;
@@ -634,7 +634,7 @@ body {
 
 .login-branding {
   flex: 1.2;
-  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #949deb 50%, #0512aa 100%);
   position: relative;
   padding: 6rem;
   display: flex;

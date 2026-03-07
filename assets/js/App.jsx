@@ -12,8 +12,11 @@ import { TeachersManager } from './components/Admin/Teachers.jsx';
 import { CoursesManager } from './components/Admin/Courses.jsx';
 import { SubjectsManager } from './components/Admin/Subjects.jsx';
 import { PaymentsManager } from './components/Admin/Payments.jsx';
+import { DiscountsManager } from './components/Admin/Discounts.jsx';
 import { ReportsManager } from './components/Admin/Reports.jsx';
 import { AcademicYearsManager } from './components/Admin/AcademicYears.jsx';
+import { ScaleSettings } from './components/Admin/ScaleSettings.jsx';
+import { AchievementSettings } from './components/Admin/AchievementSettings.jsx';
 
 // Teacher Components
 import { TeacherDashboard } from './components/Teacher/Dashboard.jsx';
@@ -62,6 +65,8 @@ const App = () => {
             title: 'Académico',
             links: [
                 { path: '/admin/anios-academicos', icon: 'event', label: 'Años Académicos' },
+                { path: '/admin/escalas', icon: 'grade', label: 'Escala Valorativa' },
+                { path: '/admin/logros', icon: 'emoji_events', label: 'Logros Generales' },
                 { path: '/admin/cursos', icon: 'room_preferences', label: 'Cursos' },
                 { path: '/admin/materias', icon: 'menu_book', label: 'Materias' }
             ]
@@ -77,6 +82,7 @@ const App = () => {
             title: 'Otros',
             links: [
                 { path: '/admin/pagos', icon: 'payments', label: 'Pagos' },
+                { path: '/admin/descuentos', icon: 'money_off', label: 'Descuentos' },
                 { path: '/admin/boletines', icon: 'description', label: 'Boletines' }
             ]
         }
@@ -87,6 +93,7 @@ const App = () => {
             title: 'Principal',
             links: [
                 { path: '/docente/dashboard', icon: 'dashboard', label: 'Inicio' },
+                { path: '/docente/logros', icon: 'emoji_events', label: 'Logros Generales' },
                 { path: '/docente/perfil', icon: 'person', label: 'Mi Perfil' }
             ]
         }
@@ -117,9 +124,12 @@ const App = () => {
                                     <Route path="estudiantes" element={<StudentsManager />} />
                                     <Route path="docentes" element={<TeachersManager />} />
                                     <Route path="anios-academicos" element={<AcademicYearsManager />} />
+                                    <Route path="escalas" element={<ScaleSettings />} />
+                                    <Route path="logros" element={<AchievementSettings />} />
                                     <Route path="cursos" element={<CoursesManager />} />
                                     <Route path="materias" element={<SubjectsManager />} />
                                     <Route path="pagos" element={<PaymentsManager />} />
+                                    <Route path="descuentos" element={<DiscountsManager />} />
                                     <Route path="boletines" element={<ReportsManager />} />
                                     <Route path="*" element={<Navigate to="dashboard" replace />} />
                                 </Routes>
@@ -133,6 +143,7 @@ const App = () => {
                             <Layout roleTitle="Docente" navigation={docenteNav}>
                                 <Routes>
                                     <Route path="dashboard" element={<TeacherDashboard />} />
+                                    <Route path="logros" element={<AchievementSettings />} />
                                     <Route path="calificaciones/:cursoId" element={<TeacherGrades />} />
                                     <Route path="perfil" element={<TeacherProfile />} />
                                     <Route path="*" element={<Navigate to="dashboard" replace />} />

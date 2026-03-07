@@ -9,6 +9,7 @@ export const StudentDashboard = () => {
     const [selectedYear, setSelectedYear] = useState('');
     const [estData, setEstData] = useState(null);
     const [notas, setNotas] = useState([]);
+    const [expandedNota, setExpandedNota] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -48,13 +49,16 @@ export const StudentDashboard = () => {
         setNotas(data || []);
     };
 
-    const prom = notas.length > 0 ? (notas.reduce((acc, n) => acc + n.nota, 0) / notas.length).toFixed(2) : '0.00';
+    const prom = notas.length > 0 ? (notas.reduce((acc, n) => acc + (n.nota_final || n.nota), 0) / notas.length).toFixed(2) : '0.00';
 
-    const getQualVal = (nota) => {
-        if (nota >= 4.5) return { text: 'Superior', className: 'badge-success' };
-        if (nota >= 4.0) return { text: 'Alto', className: 'badge-primary' };
-        if (nota >= 3.0) return { text: 'Básico', className: 'badge-warning' };
-        return { text: 'Bajo', className: 'badge-error' };
+    const getScaleBadgeClass = (escala) => {
+        switch (escala) {
+            case 'Superior': return 'badge-success';
+            case 'Alto': return 'badge-primary';
+            case 'Básico': return 'badge-warning';
+            case 'Bajo': return 'badge-error';
+            default: return 'bg-slate-100 text-slate-600';
+        }
     };
 
     if (loading) return <div className="py-20 text-center text-slate-400">Cargando progreso académico...</div>;
@@ -107,14 +111,53 @@ export const StudentDashboard = () => {
                         </thead>
                         <tbody>
                             {notas.map(n => {
-                                const qual = getQualVal(n.nota);
+                                const isExpanded = expandedNota === n.id;
                                 return (
-                                    <tr key={n.id}>
-                                        <td><p className="font-bold text-slate-800">{n.materias?.nombre}</p></td>
-                                        <td className="text-center font-black text-lg">{n.nota.toFixed(1)}</td>
-                                        <td><span className={`badge ${qual.className}`}>{qual.text}</span></td>
-                                        <td className="text-sm text-slate-500 italic max-w-xs truncate">{n.descripcion || 'Sin nota explicativa.'}</td>
-                                    </tr>
+                                    <React.Fragment key={n.id}>
+                                        <tr className="cursor-pointer hover:bg-slate-50 transition-colors" onClick={() => setExpandedNota(isExpanded ? null : n.id)}>
+                                            <td>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`material-symbols-outlined text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>chevron_right</span>
+                                                    <p className="font-bold text-slate-800">{n.materias?.nombre}</p>
+                                                </div>
+                                            </td>
+                                            <td className="text-center font-black text-lg text-blue-900">{(n.nota_final || n.nota).toFixed(1)}</td>
+                                            <td><span className={`badge ${getScaleBadgeClass(n.escala_valorativa)}`}>{n.escala_valorativa || 'Pendiente'}</span></td>
+                                            <td className="text-sm text-slate-600 font-medium max-w-xs">{n.logro_calculado || n.descripcion || 'Sin observaciones.'}</td>
+                                        </tr>
+                                        {isExpanded && (
+                                            <tr className="bg-slate-50/50">
+                                                <td colSpan="4" className="p-6">
+                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                        <div className="p-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                                            <p className="text-[10px] font-black uppercase text-blue-600 mb-2">Tareas Clase (30%)</p>
+                                                            <div className="flex gap-2">
+                                                                {[n.tc1, n.tc2, n.tc3, n.tc4].map((v, i) => (
+                                                                    <div key={i} className="flex-1 text-center py-1 bg-blue-50 rounded-lg text-xs font-bold">{v || '-'}</div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                        <div className="p-3 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                                            <p className="text-[10px] font-black uppercase text-emerald-600 mb-2">Tareas Casa (30%)</p>
+                                                            <div className="flex gap-2">
+                                                                {[n.th1, n.th2, n.th3, n.th4].map((v, i) => (
+                                                                    <div key={i} className="flex-1 text-center py-1 bg-emerald-50 rounded-lg text-xs font-bold">{v || '-'}</div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                        <div className="p-3 bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-center">
+                                                            <p className="text-[10px] font-black uppercase text-amber-600 mb-1">Cuaderno (10%)</p>
+                                                            <p className="text-lg font-black">{n.cuaderno || '-'}</p>
+                                                        </div>
+                                                        <div className="p-3 bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-center">
+                                                            <p className="text-[10px] font-black uppercase text-violet-600 mb-1">Examen (30%)</p>
+                                                            <p className="text-lg font-black">{n.examen || '-'}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </React.Fragment>
                                 );
                             })}
                             {notas.length === 0 && (
