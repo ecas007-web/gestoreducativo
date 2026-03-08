@@ -24,10 +24,14 @@ export const PaymentsManager = () => {
     const [totalIngresos, setTotalIngresos] = useState(0);
     const [totalTransferencia, setTotalTransferencia] = useState(0);
     const [totalEfectivo, setTotalEfectivo] = useState(0);
+    const [listaAnios, setListaAnios] = useState([]);
 
     // Modal de registro
     const [showModal, setShowModal] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [searchHistorial, setSearchHistorial] = useState('');
+    const [mesHistorial, setMesHistorial] = useState(''); // '' es Todos
+    const [anioHistorial, setAnioHistorial] = useState('');
     const [estudiantesBuscados, setEstudiantesBuscados] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
 
@@ -35,6 +39,7 @@ export const PaymentsManager = () => {
     const [valorPensionNormal, setValorPensionNormal] = useState(0);
 
     const initialFormState = {
+        id: null,
         estudiante_id: '',
         estudiante_nombre: '',
         descuento_aplicado: 0,
@@ -55,15 +60,21 @@ export const PaymentsManager = () => {
         if (anioActivo && mesFiltro) {
             generarReportes();
         }
-    }, [mesFiltro, anioActivo]);
+    }, [mesFiltro, anioActivo, anioHistorial, mesHistorial, activeTab]);
 
     const loadBaseData = async () => {
         setLoading(true);
         try {
             const { data: anioData } = await supabase.from('anios_academicos').select('*').eq('estado', true).single();
+            const { data: todosAnios } = await supabase.from('anios_academicos').select('*').order('anio', { ascending: false });
+
             if (anioData) {
                 setAnioActivo(anioData);
+                setAnioHistorial(anioData.id);
                 setValorPensionNormal(Number(anioData.valor_pension || 0));
+            }
+            if (todosAnios) {
+                setListaAnios(todosAnios);
             }
         } catch (err) {
             mostrarToast('Error al cargar datos: ' + err.message, 'error');
@@ -158,19 +169,67 @@ export const PaymentsManager = () => {
             setTotalTransferencia(iTransferencia);
             setTotalEfectivo(iEfectivo);
 
-            // También cargamos los últimos 10 pagos recientes independientemente del mes para una vista general
-            const { data: ultimosPagos } = await supabase
+            // También cargamos el historial de pagos con filtros
+            let query = supabase
                 .from('pagos')
-                .select('id, monto, fecha_pago, metodo_pago, mes, observacion, estudiantes(nombres, apellidos)')
-                .order('created_at', { ascending: false })
-                .limit(10);
+                .select('id, monto, fecha_pago, metodo_pago, mes, observacion, estudiante_id, estudiantes(nombres, apellidos)')
+                .order('created_at', { ascending: false });
 
-            setPagosRecientes(ultimosPagos || []);
+            if (anioHistorial) {
+                query = query.eq('anio_academico_id', anioHistorial);
+            }
+            if (mesHistorial !== '') {
+                query = query.eq('mes', mesHistorial);
+            }
+
+            const { data: todosPagos } = await query;
+            setPagosRecientes(todosPagos || []);
         } catch (err) {
             mostrarToast('Error al generar reportes: ' + err.message, 'error');
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleEditPago = (pago) => {
+        const estNombre = `${pago.estudiantes?.nombres} ${pago.estudiantes?.apellidos}`;
+        setFormData({
+            id: pago.id,
+            estudiante_id: pago.estudiante_id,
+            estudiante_nombre: estNombre,
+            descuento_aplicado: 0,
+            mes: pago.mes,
+            monto_maximo_permitido: 9999999,
+            monto: pago.monto,
+            metodo_pago: pago.metodo_pago,
+            fecha_pago: pago.fecha_pago,
+            observacion: pago.observacion || ''
+        });
+        setShowModal(true);
+    };
+
+    const handleDeletePago = async (id) => {
+        if (!confirm('¿Está seguro de eliminar este registro de pago? Esta acción no se puede deshacer.')) return;
+
+        setLoading(true);
+        try {
+            const { error } = await supabase.from('pagos').delete().eq('id', id);
+            if (error) throw error;
+
+            mostrarToast('Pago eliminado correctamente', 'success');
+            generarReportes();
+        } catch (err) {
+            mostrarToast('Error al eliminar pago: ' + err.message, 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const verHistorialEstudiante = (est) => {
+        setSearchHistorial(`${est.nombres || ''} ${est.apellidos || ''}`.trim());
+        setMesHistorial('');
+        setAnioHistorial('');
+        setActiveTab('recientes');
     };
 
     // Autocomplete para el formulario de pago
@@ -231,17 +290,19 @@ export const PaymentsManager = () => {
                 if (error) throw error;
                 const totalPagado = (data || []).reduce((sum, p) => sum + Number(p.monto), 0);
 
+                // Si estamos editando, el monto actual NO debe contar contra el máximo
+                const montoActualSiEditamos = formData.id ? (pagosRecientes.find(p => p.id === formData.id)?.monto || 0) : 0;
+                const totalPagadoSinActual = totalPagado - Number(montoActualSiEditamos);
+
                 const pEsperada = valorPensionNormal - (formData.descuento_aplicado || 0);
-                const maxPermitido = Math.max(0, pEsperada - totalPagado);
+                const maxPermitido = Math.max(0, pEsperada - totalPagadoSinActual);
 
                 setFormData(prev => {
-                    // Solo actualizamos si realmente cambio, evitamos loops recursivos
                     if (prev.monto_maximo_permitido !== maxPermitido) {
                         return {
                             ...prev,
                             monto_maximo_permitido: maxPermitido,
-                            // Autofill the amount with the remaining balance
-                            monto: prev.monto <= 0 || prev.monto === (pEsperada - totalPagado + prev.monto) ? maxPermitido : prev.monto
+                            monto: prev.monto <= 0 ? maxPermitido : prev.monto
                         };
                     }
                     return prev;
@@ -290,14 +351,20 @@ export const PaymentsManager = () => {
                 registrado_por: profile.id
             };
 
-            const { error } = await supabase.from('pagos').insert([payload]);
-            if (error) throw error;
+            if (formData.id) {
+                const { error } = await supabase.from('pagos').update(payload).eq('id', formData.id);
+                if (error) throw error;
+                mostrarToast('Pago actualizado correctamente', 'success');
+            } else {
+                const { error } = await supabase.from('pagos').insert([payload]);
+                if (error) throw error;
+                mostrarToast('Pago registrado correctamente', 'success');
+            }
 
-            mostrarToast('Pago registrado correctamente', 'success');
             setShowModal(false);
             generarReportes();
         } catch (err) {
-            mostrarToast('Error al registrar pago: ' + err.message, 'error');
+            mostrarToast('Error al procesar pago: ' + err.message, 'error');
         } finally {
             setLoading(false);
         }
@@ -329,7 +396,7 @@ export const PaymentsManager = () => {
                             Estudiantes En Mora
                         </button>
                         <button onClick={() => setActiveTab('recientes')} className={`px-4 py-2 font-medium text-sm transition-all rounded-md ${activeTab === 'recientes' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                            Pagos Recientes
+                            Todos los Pagos
                         </button>
                     </div>
 
@@ -340,6 +407,39 @@ export const PaymentsManager = () => {
                                 <select className="form-input text-sm py-1.5" value={mesFiltro} onChange={(e) => setMesFiltro(Number(e.target.value))}>
                                     {MESES.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
                                 </select>
+                            </div>
+                        )}
+                        {activeTab === 'recientes' && (
+                            <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2">
+                                    <label className="text-sm font-medium text-slate-600 whitespace-nowrap">Año:</label>
+                                    <select className="form-input text-sm py-1.5" value={anioHistorial} onChange={(e) => setAnioHistorial(e.target.value)}>
+                                        <option value="">Todos los años</option>
+                                        {listaAnios.map(a => <option key={a.id} value={a.id}>{a.anio}</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <label className="text-sm font-medium text-slate-600 whitespace-nowrap">Mes:</label>
+                                    <select className="form-input text-sm py-1.5" value={mesHistorial} onChange={(e) => setMesHistorial(e.target.value === '' ? '' : Number(e.target.value))}>
+                                        <option value="">Todos los meses</option>
+                                        {MESES.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex items-center gap-2 ml-2">
+                                    <span className="material-symbols-outlined text-slate-400 text-sm">search</span>
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar por estudiante..."
+                                        className="form-input text-sm py-1.5 w-64"
+                                        value={searchHistorial}
+                                        onChange={(e) => setSearchHistorial(e.target.value)}
+                                    />
+                                    {searchHistorial && (
+                                        <button onClick={() => setSearchHistorial('')} className="text-slate-400 hover:text-slate-600">
+                                            <span className="material-symbols-outlined text-sm">close</span>
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         )}
                         {activeTab === 'al_dia' && (
@@ -371,11 +471,12 @@ export const PaymentsManager = () => {
                                     <th>Pensión Esperada</th>
                                     <th>Total Pagado (Mes)</th>
                                     <th>Método de Pago</th>
+                                    <th className="text-right">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {reporteAlDia.length === 0 ? (
-                                    <tr><td colSpan="5" className="text-center py-8 text-slate-500">Ningún estudiante se encuentra al día en este mes.</td></tr>
+                                    <tr><td colSpan="6" className="text-center py-8 text-slate-500">Ningún estudiante se encuentra al día en este mes.</td></tr>
                                 ) : reporteAlDia.map(est => (
                                     <tr key={est.id}>
                                         <td>
@@ -396,6 +497,11 @@ export const PaymentsManager = () => {
                                                 {est.metodoPago}
                                             </span>
                                         </td>
+                                        <td className="text-right">
+                                            <button onClick={() => verHistorialEstudiante(est)} className="btn btn-ghost btn-sm text-blue-600 p-1" title="Ver Historial">
+                                                <span className="material-symbols-outlined !text-lg">history</span>
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -411,11 +517,12 @@ export const PaymentsManager = () => {
                                     <th>Pensión Esperada</th>
                                     <th>Abono del Mes</th>
                                     <th>Saldo en Contra</th>
+                                    <th className="text-right">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {reporteEnMora.length === 0 ? (
-                                    <tr><td colSpan="5" className="text-center py-8 text-slate-500">No hay estudiantes en mora en este mes.</td></tr>
+                                    <tr><td colSpan="6" className="text-center py-8 text-slate-500">No hay estudiantes en mora en este mes.</td></tr>
                                 ) : reporteEnMora.map(est => (
                                     <tr key={est.id}>
                                         <td>
@@ -436,6 +543,11 @@ export const PaymentsManager = () => {
                                                 - ${est.saldoPendiente.toLocaleString()}
                                             </span>
                                         </td>
+                                        <td className="text-right">
+                                            <button onClick={() => verHistorialEstudiante(est)} className="btn btn-ghost btn-sm text-blue-600 p-1" title="Ver Historial">
+                                                <span className="material-symbols-outlined !text-lg">history</span>
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -451,32 +563,54 @@ export const PaymentsManager = () => {
                                     <th>Mes Pagado</th>
                                     <th>Monto</th>
                                     <th>Obs.</th>
+                                    <th className="text-right">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {pagosRecientes.length === 0 ? (
-                                    <tr><td colSpan="5" className="text-center py-8 text-slate-500">No hay pagos registrados recientemente.</td></tr>
-                                ) : pagosRecientes.map(p => (
-                                    <tr key={p.id}>
-                                        <td>
-                                            <div className="text-sm font-medium text-slate-700">{p.fecha_pago}</div>
-                                            <div className="text-xs capitalize flex items-center gap-1 text-slate-500 mt-1">
-                                                <span className="material-symbols-outlined text-[14px]">{p.metodo_pago === 'efectivo' ? 'payments' : 'account_balance'}</span>
-                                                {p.metodo_pago}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div className="font-bold text-slate-800">{p.estudiantes?.nombres} {p.estudiantes?.apellidos}</div>
-                                        </td>
-                                        <td>
-                                            <span className="badge badge-primary">{MESES.find(m => m.id === p.mes)?.label}</span>
-                                        </td>
-                                        <td>
-                                            <div className="font-bold text-emerald-600">${Number(p.monto).toLocaleString()}</div>
-                                        </td>
-                                        <td className="text-slate-500 text-sm max-w-[200px] truncate">{p.observacion || '-'}</td>
-                                    </tr>
-                                ))}
+                                {(() => {
+                                    const filtrados = pagosRecientes.filter(p => {
+                                        const search = searchHistorial.toLowerCase();
+                                        const nombres = (p.estudiantes?.nombres || '').toLowerCase();
+                                        const apellidos = (p.estudiantes?.apellidos || '').toLowerCase();
+                                        return nombres.includes(search) || apellidos.includes(search);
+                                    });
+
+                                    if (filtrados.length === 0) {
+                                        return <tr><td colSpan="6" className="text-center py-8 text-slate-500">No se encontraron pagos con los filtros seleccionados (Mes, Año, Estudiante).</td></tr>;
+                                    }
+
+                                    return filtrados.map(p => (
+                                        <tr key={p.id}>
+                                            <td>
+                                                <div className="text-sm font-medium text-slate-700">{p.fecha_pago}</div>
+                                                <div className="text-xs capitalize flex items-center gap-1 text-slate-500 mt-1">
+                                                    <span className="material-symbols-outlined text-[14px]">{p.metodo_pago === 'efectivo' ? 'payments' : 'account_balance'}</span>
+                                                    {p.metodo_pago}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="font-bold text-slate-800">{p.estudiantes?.nombres} {p.estudiantes?.apellidos}</div>
+                                            </td>
+                                            <td>
+                                                <span className="badge badge-primary">{MESES.find(m => m.id === p.mes)?.label}</span>
+                                            </td>
+                                            <td>
+                                                <div className="font-bold text-emerald-600">${Number(p.monto).toLocaleString()}</div>
+                                            </td>
+                                            <td className="text-slate-500 text-sm max-w-[200px] truncate">{p.observacion || '-'}</td>
+                                            <td className="text-right">
+                                                <div className="flex justify-end gap-1">
+                                                    <button onClick={() => handleEditPago(p)} className="btn btn-ghost btn-sm text-blue-600 p-1" title="Editar Pago">
+                                                        <span className="material-symbols-outlined !text-lg">edit</span>
+                                                    </button>
+                                                    <button onClick={() => handleDeletePago(p.id)} className="btn btn-ghost btn-sm text-rose-600 p-1" title="Eliminar Pago">
+                                                        <span className="material-symbols-outlined !text-lg">delete</span>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ));
+                                })()}
                             </tbody>
                         </table>
                     )}
@@ -484,191 +618,193 @@ export const PaymentsManager = () => {
             </div>
 
             {/* Modal Registro de Pago */}
-            {showModal && (
-                <div className="modal-backdrop z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[1.6rem] shadow-[0_20px_60px_rgba(0,0,0,0.15)] flex flex-col w-full max-w-7xl max-h-[90vh] overflow-hidden animate-zoomIn">
-                        {/* Header */}
-                        <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50 shrink-0">
-                            <div>
-                                <h3 className="text-xl font-black text-slate-800">Registrar Pago de Pensión</h3>
-                                <p className="text-sm text-slate-500 mt-1">Busque un estudiante y registre su contribución.</p>
+            {
+                showModal && (
+                    <div className="modal-backdrop z-[100] flex items-center justify-center p-4">
+                        <div className="bg-white rounded-[1.6rem] shadow-[0_20px_60px_rgba(0,0,0,0.15)] flex flex-col w-full max-w-7xl max-h-[90vh] overflow-hidden animate-zoomIn">
+                            {/* Header */}
+                            <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50 shrink-0">
+                                <div>
+                                    <h3 className="text-xl font-black text-slate-800">Registrar Pago de Pensión</h3>
+                                    <p className="text-sm text-slate-500 mt-1">Busque un estudiante y registre su contribución.</p>
+                                </div>
+                                <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 bg-white shadow-sm p-1.5 rounded-lg border border-slate-200 transition-colors">
+                                    <span className="material-symbols-outlined block">close</span>
+                                </button>
                             </div>
-                            <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 bg-white shadow-sm p-1.5 rounded-lg border border-slate-200 transition-colors">
-                                <span className="material-symbols-outlined block">close</span>
-                            </button>
-                        </div>
 
-                        {/* Body Scrollable Area */}
-                        <div className="p-6 overflow-y-auto w-full flex-1 bg-white">
-                            <form onSubmit={handleRegistrarPago}>
-                                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
-                                    {/* Left Column: Search & Student Info */}
-                                    <div className="md:col-span-5 space-y-5">
-                                        {!formData.estudiante_id && (
-                                            <div className="form-group relative">
-                                                <label className="form-label text-sm">Buscar Estudiante</label>
-                                                <div className="relative shadow-sm rounded-lg">
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400">search</span>
-                                                    <input
-                                                        type="text"
-                                                        className="form-input pl-10 w-full bg-slate-50 focus:bg-white"
-                                                        placeholder="Buscar por grado, nombre, documento..."
-                                                        value={searchTerm}
-                                                        onChange={e => setSearchTerm(e.target.value)}
-                                                        autoFocus
-                                                    />
-                                                    {isSearching && <span className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>}
-                                                </div>
-
-                                                {estudiantesBuscados.length > 0 && searchTerm.length >= 3 && (
-                                                    <ul className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] max-h-60 overflow-y-auto divide-y divide-slate-100">
-                                                        {estudiantesBuscados.map(est => (
-                                                            <li
-                                                                key={est.id}
-                                                                className="p-3 hover:bg-slate-50 cursor-pointer transition-colors"
-                                                                onClick={() => handleSelectEstudianteParaPago(est)}
-                                                            >
-                                                                <div className="flex justify-between items-start gap-3">
-                                                                    <div>
-                                                                        <div className="font-bold text-slate-800 text-base md:text-lg leading-tight">{est.nombres} {est.apellidos}</div>
-                                                                        <div className="text-sm text-slate-500 flex flex-wrap gap-2 mt-2">
-                                                                            <span className="bg-slate-100 px-2 rounded text-slate-600 font-medium">{est.numero_documento}</span>
-                                                                            <span className="bg-blue-50 text-blue-700 font-medium px-2 rounded">{est.cursos?.nombre}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                    {est.descuento > 0 && (
-                                                                        <span className="shrink-0 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200">
-                                                                            Desc. Aplicado
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                )}
-                                                <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300 flex flex-col items-center justify-center text-center gap-2 text-slate-400 min-h-[120px]">
-                                                    <span className="material-symbols-outlined text-4xl opacity-50">person_search</span>
-                                                    <span className="text-sm">Utiliza el buscador para encontrar un estudiante registrado en el sistema.</span>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {formData.estudiante_id && (
-                                            <div className="bg-blue-50/50 border border-blue-100 p-5 rounded-2xl relative overflow-hidden group shadow-sm">
-                                                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-100 rounded-full blur-3xl -mr-10 -mt-10 opacity-60"></div>
-                                                <div className="relative z-10">
-                                                    <div className="flex justify-between items-center mb-3">
-                                                        <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest bg-blue-100 px-2 py-0.5 rounded-full">Estudiante Seleccionado</span>
-                                                        <button type="button" onClick={() => setFormData({ ...formData, estudiante_id: '', estudiante_nombre: '' })} className="text-xs font-bold text-slate-500 hover:text-slate-800 bg-white border border-slate-200 rounded-md px-2 py-1 shadow-sm transition-colors flex items-center gap-1">
-                                                            <span className="material-symbols-outlined text-[14px]">refresh</span> Cambiar
-                                                        </button>
+                            {/* Body Scrollable Area */}
+                            <div className="p-6 overflow-y-auto w-full flex-1 bg-white">
+                                <form onSubmit={handleRegistrarPago}>
+                                    <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+                                        {/* Left Column: Search & Student Info */}
+                                        <div className="md:col-span-5 space-y-5">
+                                            {!formData.estudiante_id && (
+                                                <div className="form-group relative">
+                                                    <label className="form-label text-sm">Buscar Estudiante</label>
+                                                    <div className="relative shadow-sm rounded-lg">
+                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400">search</span>
+                                                        <input
+                                                            type="text"
+                                                            className="form-input pl-10 w-full bg-slate-50 focus:bg-white"
+                                                            placeholder="Buscar por grado, nombre, documento..."
+                                                            value={searchTerm}
+                                                            onChange={e => setSearchTerm(e.target.value)}
+                                                            autoFocus
+                                                        />
+                                                        {isSearching && <span className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>}
                                                     </div>
-                                                    <h4 className="font-black text-slate-800 text-lg leading-tight mb-4">{formData.estudiante_nombre}</h4>
 
-                                                    <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-                                                        <span className="text-xs font-medium text-slate-500 block mb-1">Pensión Máxima a Cancelar:</span>
-                                                        <div className="flex items-end gap-2">
-                                                            <span className="text-2xl font-black text-rose-600 leading-none">${formData.monto_maximo_permitido.toLocaleString()}</span>
-                                                            {formData.monto_maximo_permitido < valorPensionNormal && (
-                                                                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 mb-0.5">Descuento activo</span>
-                                                            )}
+                                                    {estudiantesBuscados.length > 0 && searchTerm.length >= 3 && (
+                                                        <ul className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] max-h-60 overflow-y-auto divide-y divide-slate-100">
+                                                            {estudiantesBuscados.map(est => (
+                                                                <li
+                                                                    key={est.id}
+                                                                    className="p-3 hover:bg-slate-50 cursor-pointer transition-colors"
+                                                                    onClick={() => handleSelectEstudianteParaPago(est)}
+                                                                >
+                                                                    <div className="flex justify-between items-start gap-3">
+                                                                        <div>
+                                                                            <div className="font-bold text-slate-800 text-base md:text-lg leading-tight">{est.nombres} {est.apellidos}</div>
+                                                                            <div className="text-sm text-slate-500 flex flex-wrap gap-2 mt-2">
+                                                                                <span className="bg-slate-100 px-2 rounded text-slate-600 font-medium">{est.numero_documento}</span>
+                                                                                <span className="bg-blue-50 text-blue-700 font-medium px-2 rounded">{est.cursos?.nombre}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                        {est.descuento > 0 && (
+                                                                            <span className="shrink-0 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200">
+                                                                                Desc. Aplicado
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    )}
+                                                    <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300 flex flex-col items-center justify-center text-center gap-2 text-slate-400 min-h-[120px]">
+                                                        <span className="material-symbols-outlined text-4xl opacity-50">person_search</span>
+                                                        <span className="text-sm">Utiliza el buscador para encontrar un estudiante registrado en el sistema.</span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {formData.estudiante_id && (
+                                                <div className="bg-blue-50/50 border border-blue-100 p-5 rounded-2xl relative overflow-hidden group shadow-sm">
+                                                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-100 rounded-full blur-3xl -mr-10 -mt-10 opacity-60"></div>
+                                                    <div className="relative z-10">
+                                                        <div className="flex justify-between items-center mb-3">
+                                                            <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest bg-blue-100 px-2 py-0.5 rounded-full">Estudiante Seleccionado</span>
+                                                            <button type="button" onClick={() => setFormData({ ...formData, estudiante_id: '', estudiante_nombre: '' })} className="text-xs font-bold text-slate-500 hover:text-slate-800 bg-white border border-slate-200 rounded-md px-2 py-1 shadow-sm transition-colors flex items-center gap-1">
+                                                                <span className="material-symbols-outlined text-[14px]">refresh</span> Cambiar
+                                                            </button>
+                                                        </div>
+                                                        <h4 className="font-black text-slate-800 text-lg leading-tight mb-4">{formData.estudiante_nombre}</h4>
+
+                                                        <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                                                            <span className="text-xs font-medium text-slate-500 block mb-1">Pensión Máxima a Cancelar:</span>
+                                                            <div className="flex items-end gap-2">
+                                                                <span className="text-2xl font-black text-rose-600 leading-none">${formData.monto_maximo_permitido.toLocaleString()}</span>
+                                                                {formData.monto_maximo_permitido < valorPensionNormal && (
+                                                                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 mb-0.5">Descuento activo</span>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Right Column: Payment Form */}
-                                    <div className={`md:col-span-7 space-y-5 transition-opacity duration-300 ${!formData.estudiante_id ? 'opacity-40 pointer-events-none grayscale' : 'opacity-100'}`}>
-                                        <div className="grid grid-cols-2 gap-5">
-                                            <div className="form-group">
-                                                <label className="form-label text-sm">Mes a Cancelar</label>
-                                                <select
-                                                    className="form-input w-full shadow-sm bg-slate-50 focus:bg-white"
-                                                    value={formData.mes}
-                                                    onChange={e => setFormData({ ...formData, mes: e.target.value })}
-                                                    required
-                                                >
-                                                    {MESES.map(m => (
-                                                        <option key={m.id} value={m.id}>{m.label}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <div className="form-group relative group">
-                                                <label className="form-label text-sm text-emerald-700">Valor a Registrar</label>
-                                                <div className="relative shadow-sm rounded-lg">
-                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-emerald-600 text-lg">$</span>
-                                                    <input
-                                                        type="number"
-                                                        required
-                                                        min="0"
-                                                        max={formData.monto_maximo_permitido > 0 ? formData.monto_maximo_permitido : undefined}
-                                                        className="form-input pl-8 w-full font-black text-xl text-emerald-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all bg-emerald-50/50"
-                                                        value={formData.monto}
-                                                        onChange={e => setFormData({ ...formData, monto: e.target.value })}
-                                                    />
-                                                </div>
-                                                {formData.monto > formData.monto_maximo_permitido && (
-                                                    <p className="text-xs text-rose-500 font-medium mt-1.5 flex items-center gap-1">
-                                                        <span className="material-symbols-outlined text-[14px]">error</span>
-                                                        Invalido: Excede ${formData.monto_maximo_permitido.toLocaleString()}
-                                                    </p>
-                                                )}
-                                            </div>
+                                            )}
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-5">
-                                            <div className="form-group">
-                                                <label className="form-label text-sm">Método de Pago</label>
-                                                <select
-                                                    className="form-input w-full shadow-sm"
-                                                    value={formData.metodo_pago}
-                                                    onChange={e => setFormData({ ...formData, metodo_pago: e.target.value })}
-                                                    required
-                                                >
-                                                    <option value="transferencia">Transferencia Bancaria (o PSE)</option>
-                                                    <option value="efectivo">Efectivo Físico</option>
-                                                </select>
+                                        {/* Right Column: Payment Form */}
+                                        <div className={`md:col-span-7 space-y-5 transition-opacity duration-300 ${!formData.estudiante_id ? 'opacity-40 pointer-events-none grayscale' : 'opacity-100'}`}>
+                                            <div className="grid grid-cols-2 gap-5">
+                                                <div className="form-group">
+                                                    <label className="form-label text-sm">Mes a Cancelar</label>
+                                                    <select
+                                                        className="form-input w-full shadow-sm bg-slate-50 focus:bg-white"
+                                                        value={formData.mes}
+                                                        onChange={e => setFormData({ ...formData, mes: e.target.value })}
+                                                        required
+                                                    >
+                                                        {MESES.map(m => (
+                                                            <option key={m.id} value={m.id}>{m.label}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div className="form-group relative group">
+                                                    <label className="form-label text-sm text-emerald-700">Valor a Registrar</label>
+                                                    <div className="relative shadow-sm rounded-lg">
+                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-emerald-600 text-lg">$</span>
+                                                        <input
+                                                            type="number"
+                                                            required
+                                                            min="0"
+                                                            max={formData.monto_maximo_permitido > 0 ? formData.monto_maximo_permitido : undefined}
+                                                            className="form-input pl-8 w-full font-black text-xl text-emerald-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all bg-emerald-50/50"
+                                                            value={formData.monto}
+                                                            onChange={e => setFormData({ ...formData, monto: e.target.value })}
+                                                        />
+                                                    </div>
+                                                    {formData.monto > formData.monto_maximo_permitido && (
+                                                        <p className="text-xs text-rose-500 font-medium mt-1.5 flex items-center gap-1">
+                                                            <span className="material-symbols-outlined text-[14px]">error</span>
+                                                            Invalido: Excede ${formData.monto_maximo_permitido.toLocaleString()}
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </div>
+
+                                            <div className="grid grid-cols-2 gap-5">
+                                                <div className="form-group">
+                                                    <label className="form-label text-sm">Método de Pago</label>
+                                                    <select
+                                                        className="form-input w-full shadow-sm"
+                                                        value={formData.metodo_pago}
+                                                        onChange={e => setFormData({ ...formData, metodo_pago: e.target.value })}
+                                                        required
+                                                    >
+                                                        <option value="transferencia">Transferencia Bancaria (o PSE)</option>
+                                                        <option value="efectivo">Efectivo Físico</option>
+                                                    </select>
+                                                </div>
+                                                <div className="form-group">
+                                                    <label className="form-label text-sm">Fecha de Transacción</label>
+                                                    <input
+                                                        type="date"
+                                                        className="form-input w-full shadow-sm"
+                                                        value={formData.fecha_pago}
+                                                        onChange={e => setFormData({ ...formData, fecha_pago: e.target.value })}
+                                                        max={new Date().toISOString().split('T')[0]}
+                                                        required
+                                                    />
+                                                </div>
+                                            </div>
+
                                             <div className="form-group">
-                                                <label className="form-label text-sm">Fecha de Transacción</label>
-                                                <input
-                                                    type="date"
-                                                    className="form-input w-full shadow-sm"
-                                                    value={formData.fecha_pago}
-                                                    onChange={e => setFormData({ ...formData, fecha_pago: e.target.value })}
-                                                    max={new Date().toISOString().split('T')[0]}
-                                                    required
+                                                <label className="form-label text-sm">Observación (Opcional)</label>
+                                                <textarea
+                                                    className="form-input w-full min-h-[80px] shadow-sm resize-none"
+                                                    placeholder="Por ej. Número de aprobación del banco, nombres del depositante real..."
+                                                    value={formData.observacion}
+                                                    onChange={e => setFormData({ ...formData, observacion: e.target.value })}
                                                 />
                                             </div>
                                         </div>
-
-                                        <div className="form-group">
-                                            <label className="form-label text-sm">Observación (Opcional)</label>
-                                            <textarea
-                                                className="form-input w-full min-h-[80px] shadow-sm resize-none"
-                                                placeholder="Por ej. Número de aprobación del banco, nombres del depositante real..."
-                                                value={formData.observacion}
-                                                onChange={e => setFormData({ ...formData, observacion: e.target.value })}
-                                            />
-                                        </div>
                                     </div>
-                                </div>
 
-                                {/* Footer Actions - Now part of form inside modal but sticky to bottom if we want, or just at the end */}
-                                <div className="flex justify-end gap-3 pt-6 mt-8 border-t border-slate-100">
-                                    <button type="button" onClick={() => setShowModal(false)} className="btn btn-ghost border border-slate-200 hover:bg-slate-100">Cancelar Operación</button>
-                                    <button type="submit" className="btn btn-primary px-10 shadow-md shadow-blue-500/20" disabled={loading || !formData.estudiante_id || Number(formData.monto) <= 0 || Number(formData.monto) > formData.monto_maximo_permitido}>
-                                        <span className="material-symbols-outlined text-lg">{loading ? 'hourglass_empty' : 'check_circle'}</span>
-                                        {loading ? 'Procesando...' : 'Confirmar y Registrar'}
-                                    </button>
-                                </div>
-                            </form>
+                                    {/* Footer Actions - Now part of form inside modal but sticky to bottom if we want, or just at the end */}
+                                    <div className="flex justify-end gap-3 pt-6 mt-8 border-t border-slate-100">
+                                        <button type="button" onClick={() => setShowModal(false)} className="btn btn-ghost border border-slate-200 hover:bg-slate-100">Cancelar Operación</button>
+                                        <button type="submit" className="btn btn-primary px-10 shadow-md shadow-blue-500/20" disabled={loading || !formData.estudiante_id || Number(formData.monto) <= 0 || Number(formData.monto) > formData.monto_maximo_permitido}>
+                                            <span className="material-symbols-outlined text-lg">{loading ? 'hourglass_empty' : 'check_circle'}</span>
+                                            {loading ? 'Procesando...' : 'Confirmar y Registrar'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };
