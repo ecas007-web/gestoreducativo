@@ -71,23 +71,30 @@ export const CoursesManager = () => {
             </div>
 
             {showModal && (
-                <div className="modal open">
-                    <div className="modal-content animate-zoomIn max-w-md">
-                        <h3 className="text-xl font-black text-slate-800 mb-6">{formData.id ? 'Editar Curso' : 'Nuevo Curso'}</h3>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="form-group"><label className="form-label">Nombre del Curso</label><input type="text" required className="form-input" value={formData.nombre} onChange={e => setFormData({ ...formData, nombre: e.target.value })} placeholder="Ej. Párvulo" /></div>
-                            <div className="form-group"><label className="form-label">Descripción</label><textarea className="form-input h-24" value={formData.descripcion} onChange={e => setFormData({ ...formData, descripcion: e.target.value })} placeholder="Opcional..."></textarea></div>
-                            <div className="form-group">
-                                <label className="form-label">Estado</label>
-                                <select className="form-input" value={formData.estado} onChange={e => setFormData({ ...formData, estado: e.target.value })}>
-                                    <option value="Activo">Activo</option><option value="Inactivo">Inactivo</option>
-                                </select>
-                            </div>
-                            <div className="flex justify-end gap-3 pt-6">
-                                <button type="button" onClick={() => setShowModal(false)} className="btn btn-ghost">Cancelar</button>
-                                <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? 'Guardando...' : 'Guardar Curso'}</button>
-                            </div>
-                        </form>
+                <div className="modal-backdrop">
+                    <div className="modal animate-fadeInUp">
+                        <div className="modal-header">
+                            <h3 className="modal-title">{formData.id ? 'Editar Curso' : 'Nuevo Curso'}</h3>
+                            <button onClick={() => setShowModal(false)} className="btn btn-ghost btn-sm">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div className="form-group"><label className="form-label">Nombre del Curso</label><input type="text" required className="form-input" value={formData.nombre} onChange={e => setFormData({ ...formData, nombre: e.target.value })} placeholder="Ej. Párvulo" /></div>
+                                <div className="form-group"><label className="form-label">Descripción</label><textarea className="form-input h-24" value={formData.descripcion} onChange={e => setFormData({ ...formData, descripcion: e.target.value })} placeholder="Opcional..."></textarea></div>
+                                <div className="form-group">
+                                    <label className="form-label">Estado</label>
+                                    <select className="form-input" value={formData.estado} onChange={e => setFormData({ ...formData, estado: e.target.value })}>
+                                        <option value="Activo">Activo</option><option value="Inactivo">Inactivo</option>
+                                    </select>
+                                </div>
+                                <div className="modal-footer pt-6">
+                                    <button type="button" onClick={() => setShowModal(false)} className="btn btn-ghost">Cancelar</button>
+                                    <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? 'Guardando...' : 'Guardar Curso'}</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             )}

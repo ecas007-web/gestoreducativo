@@ -9,7 +9,14 @@ export const StudentsManager = () => {
     const [activeYear, setActiveYear] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
-    const [formData, setFormData] = useState({ id: null, nombres: '', apellidos: '', tipo_documento: 'RC', numero_documento: '', curso_id: '', anio_academico_id: '' });
+    const [formData, setFormData] = useState({
+        id: null, nombres: '', apellidos: '', tipo_documento: 'RC', numero_documento: '',
+        curso_id: '', anio_academico_id: '', fecha_nac: '', sexo: '', lugar_nacimiento: '',
+        direccion: '', correo: '', telefono: '', celular: '', eps: '', tipo_sangre: '',
+        documento_padre: '', nombre_padre: '', ocupacion_padre: '', telefono_padre: '',
+        nombre_madre: '', documento_madre: '', ocupacion_madre: '', telefono_madre: '',
+        religion: '', debilidades: '', fortalezas: ''
+    });
     const [filters, setFilters] = useState({ query: '', courseId: '', status: '', anioId: '' });
 
     useEffect(() => {
@@ -43,10 +50,17 @@ export const StudentsManager = () => {
         try {
             const payload = { ...formData };
             delete payload.id;
+            // Clean empty strings for database
+            Object.keys(payload).forEach(key => {
+                if (payload[key] === '') payload[key] = null;
+            });
+
             if (formData.id) {
-                await supabase.from('estudiantes').update(payload).eq('id', formData.id);
+                const { error } = await supabase.from('estudiantes').update(payload).eq('id', formData.id);
+                if (error) throw error;
             } else {
-                await supabase.from('estudiantes').insert([payload]);
+                const { error } = await supabase.from('estudiantes').insert([payload]);
+                if (error) throw error;
             }
             mostrarToast('Estudiante guardado correctamente', 'success');
             setShowModal(false);
@@ -68,14 +82,58 @@ export const StudentsManager = () => {
         return matchesQuery && matchesCourse && matchesStatus && matchesYear;
     });
 
+    const handleOpenModal = (student = null) => {
+        if (student) {
+            setFormData({
+                id: student.id,
+                nombres: student.nombres || '',
+                apellidos: student.apellidos || '',
+                tipo_documento: student.tipo_documento || 'RC',
+                numero_documento: student.numero_documento || '',
+                curso_id: student.curso_id || '',
+                anio_academico_id: student.anio_academico_id || '',
+                fecha_nac: student.fecha_nac || '',
+                sexo: student.sexo || '',
+                lugar_nacimiento: student.lugar_nacimiento || '',
+                direccion: student.direccion || '',
+                correo: student.correo || '',
+                telefono: student.telefono || '',
+                celular: student.celular || '',
+                eps: student.eps || '',
+                tipo_sangre: student.tipo_sangre || '',
+                documento_padre: student.documento_padre || '',
+                nombre_padre: student.nombre_padre || '',
+                ocupacion_padre: student.ocupacion_padre || '',
+                telefono_padre: student.telefono_padre || '',
+                nombre_madre: student.nombre_madre || '',
+                documento_madre: student.documento_madre || '',
+                ocupacion_madre: student.ocupacion_madre || '',
+                telefono_madre: student.telefono_madre || '',
+                religion: student.religion || '',
+                debilidades: student.debilidades || '',
+                fortalezas: student.fortalezas || ''
+            });
+        } else {
+            setFormData({
+                id: null, nombres: '', apellidos: '', tipo_documento: 'RC', numero_documento: '',
+                curso_id: '', anio_academico_id: activeYear?.id || '', fecha_nac: '', sexo: '', lugar_nacimiento: '',
+                direccion: '', correo: '', telefono: '', celular: '', eps: '', tipo_sangre: '',
+                documento_padre: '', nombre_padre: '', ocupacion_padre: '', telefono_padre: '',
+                nombre_madre: '', documento_madre: '', ocupacion_madre: '', telefono_madre: '',
+                religion: '', debilidades: '', fortalezas: ''
+            });
+        }
+        setShowModal(true);
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-black text-slate-800">Gestión de Estudiantes</h2>
-                    <p className="text-slate-500">Pre-registra y administra los perfiles de los niños.</p>
+                    <p className="text-slate-500">Administra los perfiles completos de los alumnos.</p>
                 </div>
-                <button onClick={() => { setFormData({ id: null, nombres: '', apellidos: '', tipo_documento: 'RC', numero_documento: '', curso_id: '', anio_academico_id: activeYear?.id || '' }); setShowModal(true); }} className="btn btn-primary">
+                <button onClick={() => handleOpenModal()} className="btn btn-primary">
                     <span className="material-symbols-outlined">person_add</span> Pre-registrar Estudiante
                 </button>
             </div>
@@ -100,37 +158,78 @@ export const StudentsManager = () => {
             </div>
 
             <div className="card p-0 overflow-hidden">
-                <div className="table-wrapper">
-                    <table className="data-table">
+                <div className="table-wrapper overflow-x-auto">
+                    <table className="data-table whitespace-nowrap">
                         <thead>
                             <tr>
-                                <th>Estudiante</th>
+                                <th className="sticky left-0 bg-white z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">Estudiante</th>
+                                <th>Identificación</th>
                                 <th>Curso</th>
+                                <th>Datos Personales</th>
+                                <th>Contacto</th>
+                                <th>Padre</th>
+                                <th>Madre</th>
+                                <th>Otros</th>
+                                <th>Observaciones</th>
                                 <th>Estado</th>
-                                <th className="text-right">Acciones</th>
+                                <th className="text-right sticky right-0 bg-white z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredStudents.map(s => (
                                 <tr key={s.id}>
-                                    <td>
+                                    <td className="sticky left-0 bg-white z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
                                         <div className="font-bold text-slate-900">{s.nombres} {s.apellidos}</div>
-                                        <div className="text-xs text-slate-400">{s.tipo_documento} {s.numero_documento}</div>
+                                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{s.tipo_documento} {s.numero_documento}</div>
+                                    </td>
+                                    <td>
+                                        <div className="text-sm font-medium">{s.tipo_documento} {s.numero_documento}</div>
+                                        <div className="text-xs text-slate-400">{s.fecha_nac ? new Date(s.fecha_nac).toLocaleDateString() : 'Sin fecha'}</div>
                                     </td>
                                     <td><span className="badge badge-primary">{s.cursos?.nombre || 'Sin asignar'}</span></td>
+                                    <td className="text-xs">
+                                        <div className="font-bold">{s.sexo === 'M' ? 'Masculino' : s.sexo === 'F' ? 'Femenino' : 'N/A'}</div>
+                                        <div>RH: {s.tipo_sangre || 'S/G'}</div>
+                                        <div className="text-slate-400">{s.lugar_nacimiento || 'S/L'}</div>
+                                    </td>
+                                    <td className="text-xs">
+                                        <div className="font-medium">{s.celular || s.telefono || 'Sin tel.'}</div>
+                                        <div className="text-slate-400">{s.correo || 'Sin correo'}</div>
+                                        <div className="text-[10px] truncate max-w-[120px]">{s.direccion || 'Sin dir.'}</div>
+                                    </td>
+                                    <td className="text-xs">
+                                        <div className="font-bold">{s.nombre_padre || 'Sin datos'}</div>
+                                        <div className="text-slate-400">{s.telefono_padre || s.documento_padre || '-'}</div>
+                                        <div className="italic text-[10px]">{s.ocupacion_padre || '-'}</div>
+                                    </td>
+                                    <td className="text-xs">
+                                        <div className="font-bold">{s.nombre_madre || 'Sin datos'}</div>
+                                        <div className="text-slate-400">{s.telefono_madre || s.documento_madre || '-'}</div>
+                                        <div className="italic text-[10px]">{s.ocupacion_madre || '-'}</div>
+                                    </td>
+                                    <td className="text-xs">
+                                        <div>EPS: {s.eps || 'N/A'}</div>
+                                        <div>Rel: {s.religion || 'N/A'}</div>
+                                    </td>
+                                    <td className="text-xs">
+                                        <div className="max-w-[150px] truncate" title={s.fortalezas}>F: {s.fortalezas || '-'}</div>
+                                        <div className="max-w-[150px] truncate" title={s.debilidades}>D: {s.debilidades || '-'}</div>
+                                    </td>
                                     <td>
                                         <span className={`badge ${s.registro_completo ? 'badge-success' : 'badge-warning'}`}>
                                             {s.registro_completo ? 'Completo' : 'Pendiente'}
                                         </span>
                                     </td>
-                                    <td className="text-right">
-                                        <button onClick={() => { setFormData(s); setShowModal(true); }} className="btn btn-ghost btn-sm text-blue-600"><span className="material-symbols-outlined">edit</span></button>
-                                        <button onClick={async () => { if (confirm('¿Eliminar estudiante?')) { await supabase.from('estudiantes').delete().eq('id', s.id); loadData(); } }} className="btn btn-ghost btn-sm text-rose-600"><span className="material-symbols-outlined">delete</span></button>
+                                    <td className="text-right sticky right-0 bg-white z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">
+                                        <div className="flex justify-end gap-1">
+                                            <button onClick={() => handleOpenModal(s)} className="btn btn-ghost btn-sm text-blue-600 p-1"><span className="material-symbols-outlined !text-lg">edit</span></button>
+                                            <button onClick={async () => { if (confirm('¿Eliminar estudiante?')) { await supabase.from('estudiantes').delete().eq('id', s.id); loadData(); } }} className="btn btn-ghost btn-sm text-rose-600 p-1"><span className="material-symbols-outlined !text-lg">delete</span></button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
                             {filteredStudents.length === 0 && (
-                                <tr><td colSpan="4" className="text-center py-20 text-slate-400">No se encontraron estudiantes.</td></tr>
+                                <tr><td colSpan="11" className="text-center py-20 text-slate-400">No se encontraron estudiantes.</td></tr>
                             )}
                         </tbody>
                     </table>
@@ -138,47 +237,124 @@ export const StudentsManager = () => {
             </div>
 
             {showModal && (
-                <div className="modal open">
-                    <div className="modal-content animate-zoomIn max-w-lg">
-                        <h3 className="text-xl font-black text-slate-800 mb-6">{formData.id ? 'Editar Estudiante' : 'Pre-registrar Estudiante'}</h3>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="form-group"><label className="form-label">Nombres</label><input type="text" required className="form-input" value={formData.nombres} onChange={e => setFormData({ ...formData, nombres: e.target.value })} /></div>
-                                <div className="form-group"><label className="form-label">Apellidos</label><input type="text" required className="form-input" value={formData.apellidos} onChange={e => setFormData({ ...formData, apellidos: e.target.value })} /></div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="form-group">
-                                    <label className="form-label">Tipo Documento</label>
-                                    <select className="form-input" value={formData.tipo_documento} onChange={e => setFormData({ ...formData, tipo_documento: e.target.value })}>
-                                        <option value="RC">RC</option><option value="TI">TI</option>
-                                    </select>
-                                </div>
-                                <div className="form-group"><label className="form-label">Número</label><input type="text" required className="form-input" value={formData.numero_documento} onChange={e => setFormData({ ...formData, numero_documento: e.target.value })} /></div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="form-group">
-                                    <label className="form-label">Año Académico</label>
-                                    <select required className="form-input" value={formData.anio_academico_id} onChange={e => setFormData({ ...formData, anio_academico_id: e.target.value })}>
-                                        <option value="">Seleccionar Año</option>
-                                        {/* Solo listamos el año activo para nuevos registros como sugeriste, o todos para edición */}
-                                        {years.filter(y => y.estado || y.id === formData.anio_academico_id).map(y => (
-                                            <option key={y.id} value={y.id}>{y.anio} {y.estado ? '(Activo)' : ''}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">Curso Inicial</label>
-                                    <select required className="form-input" value={formData.curso_id} onChange={e => setFormData({ ...formData, curso_id: e.target.value })}>
-                                        <option value="">Seleccionar Curso</option>
-                                        {courses.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="flex justify-end gap-3 pt-6 border-t mt-6">
-                                <button type="button" onClick={() => setShowModal(false)} className="btn btn-ghost">Cancelar</button>
-                                <button type="submit" className="btn btn-primary" disabled={loading}>{loading ? 'Guardando...' : 'Guardar Estudiante'}</button>
-                            </div>
-                        </form>
+                <div className="modal-backdrop">
+                    <div className="modal animate-fadeInUp !max-w-6xl">
+                        <div className="modal-header">
+                            <h3 className="modal-title">{formData.id ? 'Editar Estudiante' : 'Pre-registrar Estudiante'}</h3>
+                            <button onClick={() => setShowModal(false)} className="btn btn-ghost btn-sm">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div className="modal-body max-h-[70vh] overflow-y-auto">
+                            <form id="studentForm" onSubmit={handleSubmit} className="space-y-8">
+                                {/* Datos Básicos */}
+                                <section>
+                                    <h4 className="text-sm font-bold text-blue-600 uppercase tracking-wider mb-4 border-b pb-1">Datos Básicos</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="form-group"><label className="form-label">Nombres</label><input type="text" required className="form-input" value={formData.nombres} onChange={e => setFormData({ ...formData, nombres: e.target.value })} /></div>
+                                        <div className="form-group"><label className="form-label">Apellidos</label><input type="text" required className="form-input" value={formData.apellidos} onChange={e => setFormData({ ...formData, apellidos: e.target.value })} /></div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div className="form-group">
+                                                <label className="form-label">Tipo Doc.</label>
+                                                <select className="form-input" value={formData.tipo_documento} onChange={e => setFormData({ ...formData, tipo_documento: e.target.value })}>
+                                                    <option value="RC">RC</option><option value="TI">TI</option>
+                                                </select>
+                                            </div>
+                                            <div className="form-group"><label className="form-label">Número</label><input type="text" required className="form-input" value={formData.numero_documento} onChange={e => setFormData({ ...formData, numero_documento: e.target.value })} /></div>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                                        <div className="form-group"><label className="form-label">Fecha Nacimiento</label><input type="date" className="form-input" value={formData.fecha_nac} onChange={e => setFormData({ ...formData, fecha_nac: e.target.value })} /></div>
+                                        <div className="form-group"><label className="form-label">Lugar Nacimiento</label><input type="text" className="form-input" value={formData.lugar_nacimiento} onChange={e => setFormData({ ...formData, lugar_nacimiento: e.target.value })} /></div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div className="form-group">
+                                                <label className="form-label">Sexo</label>
+                                                <select className="form-input" value={formData.sexo} onChange={e => setFormData({ ...formData, sexo: e.target.value })}>
+                                                    <option value="">Seleccione</option><option value="M">Masculino</option><option value="F">Femenino</option>
+                                                </select>
+                                            </div>
+                                            <div className="form-group">
+                                                <label className="form-label">T. Sangre</label>
+                                                <select className="form-input" value={formData.tipo_sangre} onChange={e => setFormData({ ...formData, tipo_sangre: e.target.value })}>
+                                                    <option value="">Seleccione</option><option value="O+">O+</option><option value="O-">O-</option><option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option><option value="AB+">AB+</option><option value="AB-">AB-</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                {/* Contacto y Salud */}
+                                <section>
+                                    <h4 className="text-sm font-bold text-blue-600 uppercase tracking-wider mb-4 border-b pb-1">Contacto y Otros</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="form-group"><label className="form-label">Dirección</label><input type="text" className="form-input" value={formData.direccion} onChange={e => setFormData({ ...formData, direccion: e.target.value })} /></div>
+                                        <div className="form-group"><label className="form-label">Correo Electrónico</label><input type="email" className="form-input" value={formData.correo} onChange={e => setFormData({ ...formData, correo: e.target.value })} /></div>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+                                        <div className="form-group"><label className="form-label">Teléfono</label><input type="text" className="form-input" value={formData.telefono} onChange={e => setFormData({ ...formData, telefono: e.target.value })} /></div>
+                                        <div className="form-group"><label className="form-label">Celular</label><input type="text" className="form-input" value={formData.celular} onChange={e => setFormData({ ...formData, celular: e.target.value })} /></div>
+                                        <div className="form-group"><label className="form-label">EPS</label><input type="text" className="form-input" value={formData.eps} onChange={e => setFormData({ ...formData, eps: e.target.value })} /></div>
+                                        <div className="form-group"><label className="form-label">Religión</label><input type="text" className="form-input" value={formData.religion} onChange={e => setFormData({ ...formData, religion: e.target.value })} /></div>
+                                    </div>
+                                </section>
+
+                                {/* Información de los Padres */}
+                                <section>
+                                    <h4 className="text-sm font-bold text-blue-600 uppercase tracking-wider mb-4 border-b pb-1">Información de los Padres</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-4 p-4 bg-slate-50 rounded-xl">
+                                            <p className="text-xs font-bold text-slate-400 uppercase">Datos del Padre</p>
+                                            <div className="form-group"><label className="form-label">Nombre Completo</label><input type="text" className="form-input" value={formData.nombre_padre} onChange={e => setFormData({ ...formData, nombre_padre: e.target.value })} /></div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="form-group"><label className="form-label">Identificación</label><input type="text" className="form-input" value={formData.documento_padre} onChange={e => setFormData({ ...formData, documento_padre: e.target.value })} /></div>
+                                                <div className="form-group"><label className="form-label">Teléfono</label><input type="text" className="form-input" value={formData.telefono_padre} onChange={e => setFormData({ ...formData, telefono_padre: e.target.value })} /></div>
+                                            </div>
+                                            <div className="form-group"><label className="form-label">Ocupación</label><input type="text" className="form-input" value={formData.ocupacion_padre} onChange={e => setFormData({ ...formData, ocupacion_padre: e.target.value })} /></div>
+                                        </div>
+                                        <div className="space-y-4 p-4 bg-slate-50 rounded-xl">
+                                            <p className="text-xs font-bold text-slate-400 uppercase">Datos de la Madre</p>
+                                            <div className="form-group"><label className="form-label">Nombre Completo</label><input type="text" className="form-input" value={formData.nombre_madre} onChange={e => setFormData({ ...formData, nombre_madre: e.target.value })} /></div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="form-group"><label className="form-label">Identificación</label><input type="text" className="form-input" value={formData.documento_madre} onChange={e => setFormData({ ...formData, documento_madre: e.target.value })} /></div>
+                                                <div className="form-group"><label className="form-label">Teléfono</label><input type="text" className="form-input" value={formData.telefono_madre} onChange={e => setFormData({ ...formData, telefono_madre: e.target.value })} /></div>
+                                            </div>
+                                            <div className="form-group"><label className="form-label">Ocupación</label><input type="text" className="form-input" value={formData.ocupacion_madre} onChange={e => setFormData({ ...formData, ocupacion_madre: e.target.value })} /></div>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                {/* Académico y Observaciones */}
+                                <section>
+                                    <h4 className="text-sm font-bold text-blue-600 uppercase tracking-wider mb-4 border-b pb-1">Académico y Observaciones</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="form-group">
+                                            <label className="form-label">Año Académico</label>
+                                            <select required className="form-input" value={formData.anio_academico_id} onChange={e => setFormData({ ...formData, anio_academico_id: e.target.value })}>
+                                                <option value="">Seleccionar Año</option>
+                                                {years.filter(y => y.estado || y.id === formData.anio_academico_id).map(y => (
+                                                    <option key={y.id} value={y.id}>{y.anio} {y.estado ? '(Activo)' : ''}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="form-group">
+                                            <label className="form-label">Curso Inicial</label>
+                                            <select required className="form-input" value={formData.curso_id} onChange={e => setFormData({ ...formData, curso_id: e.target.value })}>
+                                                <option value="">Seleccionar Curso</option>
+                                                {courses.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                        <div className="form-group"><label className="form-label">Debilidades</label><textarea className="form-input h-20" value={formData.debilidades} onChange={e => setFormData({ ...formData, debilidades: e.target.value })} placeholder="Aspectos a mejorar..."></textarea></div>
+                                        <div className="form-group"><label className="form-label">Fortalezas</label><textarea className="form-input h-20" value={formData.fortalezas} onChange={e => setFormData({ ...formData, fortalezas: e.target.value })} placeholder="Habilidades y capacidades..."></textarea></div>
+                                    </div>
+                                </section>
+                            </form>
+                        </div>
+                        <div className="modal-footer">
+                            <button type="button" onClick={() => setShowModal(false)} className="btn btn-ghost">Cancelar</button>
+                            <button type="submit" form="studentForm" className="btn btn-primary" disabled={loading}>{loading ? 'Guardando...' : 'Guardar Estudiante'}</button>
+                        </div>
                     </div>
                 </div>
             )}
