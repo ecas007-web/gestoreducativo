@@ -80,6 +80,12 @@ Las funcionalidades que debe tener la app son estas:
 
         •	logro: solo se muestra cuando se tengan la nota final , el sistema debe buscar el logro en el modulo “parametrización  de lo logro general” para el curso y la materia correspondiente en este campo debe mostrarse la concatenación de (verbo + logro) , este se debe almacenar concatenado
 
+    Modulo de gestion de estudiante:
+        en el modulo de consulta del estudiente (Gestión de Estudiantes) quiero que se muestren tambien estos campos: (FECHA de nacimiento, SEXO ,LUGAR NACIMIENTO, DIRECCION, EMAIL, TELEFONO, CELULAR, EPS, TIPO DE SANGRE, IDENTIFICACION PADRE, NOMBRE PADRE, OCUPACION_PADRE, TELEFONO PADRE, NOMBRE MADRE, IDENTIFICACION MADRE, OCUPACION MADRE, TELEFONO MADRE, RELIGION, DEBILIDADES, FORTALEZAS), verifica que esten en la base de datos y si no estan los creas para que persistan, estos mismos campos se deben mostrar en: "consulta de estudiante" y "edicion de estudiante".
+
+        nota: en el modulo de "Completar Registro Estudiante" también deben estar todos estos campos como obligatorios excepto, ese modulo también debería ser un modal ya que tendrá muchos campos, puede ser igual al edición, solo que el de edición no deben  estar  como obligatorios estos campos nuevos
+
+
     - Modulo de pagos:
         este se utilizara para el registro de los pagos de las pensiones de los estudiantes del año en curso.
         Se debe permitir el registro de pago de la pensión del estudiante con los siguientes campos: 

@@ -23,11 +23,25 @@ export const LoginPage = () => {
         email: '',
         pass: '',
         confirmPass: '',
+        fecha_nac: '',
+        sexo: '',
+        lugar_nacimiento: '',
         address: '',
         phone: '',
+        celular: '',
+        eps: '',
         blood: '',
+        docPadre: '',
         padre: '',
-        madre: ''
+        ocupPadre: '',
+        telPadre: '',
+        docMadre: '',
+        madre: '',
+        ocupMadre: '',
+        telMadre: '',
+        religion: '',
+        debilidades: '',
+        fortalezas: ''
     });
     const [verifiedStudent, setVerifiedStudent] = useState(null);
 
@@ -91,6 +105,7 @@ export const LoginPage = () => {
 
         setLoading(true);
         try {
+            // First, create the user in Auth
             const { data: { user }, error: authErr } = await supabase.auth.signUp({
                 email: regData.email,
                 password: regData.pass,
@@ -107,14 +122,29 @@ export const LoginPage = () => {
 
             if (authErr) throw authErr;
 
+            // Then update the student record
             const { error: updErr } = await supabase.from('estudiantes').update({
                 user_id: user.id,
                 correo: regData.email,
+                fecha_nac: regData.fecha_nac,
+                sexo: regData.sexo,
+                lugar_nacimiento: regData.lugar_nacimiento,
                 direccion: regData.address,
                 telefono: regData.phone,
+                celular: regData.celular,
+                eps: regData.eps,
                 tipo_sangre: regData.blood,
+                documento_padre: regData.docPadre,
                 nombre_padre: regData.padre,
+                ocupacion_padre: regData.ocupPadre,
+                telefono_padre: regData.telPadre,
+                documento_madre: regData.docMadre,
                 nombre_madre: regData.madre,
+                ocupacion_madre: regData.ocupMadre,
+                telefono_madre: regData.telMadre,
+                religion: regData.religion,
+                debilidades: regData.debilidades,
+                fortalezas: regData.fortalezas,
                 registro_completo: true
             }).eq('id', verifiedStudent.id);
 
@@ -259,14 +289,14 @@ export const LoginPage = () => {
                     )}
 
                     {view === 'student_register' && (
-                        <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto pr-2">
+                        <div className="w-full max-w-sm">
                             <button onClick={() => setView('login')} className="btn btn-ghost btn-sm mb-4 px-0">
                                 <span className="material-symbols-outlined">arrow_back</span> Volver al login
                             </button>
                             <h2 className="text-2xl font-black text-slate-800 mb-1">Completar Registro Estudiante</h2>
                             <p className="text-slate-500 mb-6 text-sm">Ingresa los datos del pre-registro del jardín.</p>
 
-                            {!verifiedStudent ? (
+                            {!verifiedStudent && (
                                 <div className="space-y-4 animate-fadeIn">
                                     <div className="form-group">
                                         <label className="form-label">Tipo de Documento</label>
@@ -287,38 +317,20 @@ export const LoginPage = () => {
                                         />
                                     </div>
                                     <button onClick={verifyPreRegistro} className="btn btn-primary btn-block pt-3" disabled={loading}>
-                                        Verificar Datos
+                                        {loading ? 'Verificando...' : 'Verificar Datos'}
                                     </button>
                                 </div>
-                            ) : (
-                                <form onSubmit={handleStudentRegister} className="space-y-4 animate-fadeIn">
-                                    <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl mb-4">
-                                        <p className="text-xs font-bold text-blue-600 uppercase mb-1">Estudiante Encontrado</p>
-                                        <p className="font-bold text-slate-800">{verifiedStudent.nombres} {verifiedStudent.apellidos}</p>
-                                        <p className="text-xs text-slate-500">Curso: {verifiedStudent.cursos?.nombre}</p>
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">Correo para notificaciones</label>
-                                        <input type="email" required className="form-input" value={regData.email} onChange={e => setRegData({ ...regData, email: e.target.value })} />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="form-group">
-                                            <label className="form-label">Contraseña</label>
-                                            <input type="password" required className="form-input" value={regData.pass} onChange={e => setRegData({ ...regData, pass: e.target.value })} />
-                                        </div>
-                                        <div className="form-group">
-                                            <label className="form-label">Confirmar</label>
-                                            <input type="password" required className="form-input" value={regData.confirmPass} onChange={e => setRegData({ ...regData, confirmPass: e.target.value })} />
-                                        </div>
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">Dirección de Residencia</label>
-                                        <input type="text" required className="form-input" value={regData.address} onChange={e => setRegData({ ...regData, address: e.target.value })} />
-                                    </div>
-                                    <button type="submit" className="btn btn-primary btn-block pt-3" disabled={loading}>
-                                        Finalizar Registro
+                            )}
+
+                            {verifiedStudent && (
+                                <div className="text-center p-6 bg-blue-50 rounded-2xl border border-blue-100 animate-fadeIn">
+                                    <span className="material-symbols-outlined text-blue-600 text-5xl mb-3">verified_user</span>
+                                    <h3 className="text-lg font-black text-slate-800 mb-1">¡Estudiante Verificado!</h3>
+                                    <p className="text-sm text-slate-600 mb-4">Hemos encontrado tu pre-registro. Por favor abre el formulario para completar tus datos.</p>
+                                    <button onClick={() => {/* El modal se abre solo por el estado verifiedStudent */ }} className="btn btn-primary btn-block">
+                                        Continuar con el Registro
                                     </button>
-                                </form>
+                                </div>
                             )}
                         </div>
                     )}
@@ -335,7 +347,7 @@ export const LoginPage = () => {
                                 <div className="form-group">
                                     <label className="form-label">Nombre Completo</label>
                                     <input
-                                        type="text" required className="form-input" placeholder="Nombre y Apelliido"
+                                        type="text" required className="form-input" placeholder="Nombre y Apellido"
                                         value={fullName} onChange={e => setFullName(e.target.value)}
                                     />
                                 </div>
@@ -377,6 +389,175 @@ export const LoginPage = () => {
                     )}
                 </div>
             </div>
+
+            {/* Modal de Registro de Estudiante (Fuera del container para evitar clipping) */}
+            {verifiedStudent && view === 'student_register' && (
+                <div className="modal-backdrop">
+                    <div className="modal !max-w-6xl max-h-[90vh] flex flex-col shadow-2xl">
+                        <div className="modal-header shrink-0">
+                            <div>
+                                <h3 className="text-xl font-black text-slate-900 leading-tight">Completar Registro Estudiantil</h3>
+                                <div className="flex gap-2 mt-1">
+                                    <span className="badge badge-primary">{verifiedStudent.nombres} {verifiedStudent.apellidos}</span>
+                                    <span className="badge badge-ghost">Curso: {verifiedStudent.cursos?.nombre}</span>
+                                </div>
+                            </div>
+                            <button onClick={() => setVerifiedStudent(null)} className="btn btn-ghost btn-sm p-1 rounded-full">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleStudentRegister} className="modal-body overflow-y-auto custom-scrollbar p-6 text-left">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {/* SECCION ACCESO */}
+                                <div className="col-span-full">
+                                    <h4 className="flex items-center gap-2 text-xs font-black text-blue-600 uppercase tracking-widest border-b pb-2 mb-4">
+                                        <span className="material-symbols-outlined !text-sm">lock</span> Cuenta de Acceso
+                                    </h4>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Correo Electrónico</label>
+                                    <input type="email" required className="form-input" value={regData.email} onChange={e => setRegData({ ...regData, email: e.target.value })} placeholder="ejemplo@correo.com" />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Contraseña</label>
+                                    <input type="password" required className="form-input" value={regData.pass} onChange={e => setRegData({ ...regData, pass: e.target.value })} placeholder="••••••••" />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Confirmar Contraseña</label>
+                                    <input type="password" required className="form-input" value={regData.confirmPass} onChange={e => setRegData({ ...regData, confirmPass: e.target.value })} placeholder="••••••••" />
+                                </div>
+
+                                {/* SECCION PERSONALES */}
+                                <div className="col-span-full mt-2">
+                                    <h4 className="flex items-center gap-2 text-xs font-black text-blue-600 uppercase tracking-widest border-b pb-2 mb-4">
+                                        <span className="material-symbols-outlined !text-sm">person</span> Datos Personales
+                                    </h4>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Fecha de Nacimiento</label>
+                                    <input type="date" required className="form-input" value={regData.fecha_nac} onChange={e => setRegData({ ...regData, fecha_nac: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Sexo</label>
+                                    <select required className="form-input" value={regData.sexo} onChange={e => setRegData({ ...regData, sexo: e.target.value })}>
+                                        <option value="">Seleccione</option>
+                                        <option value="M">Masculino</option>
+                                        <option value="F">Femenino</option>
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Tipo de Sangre</label>
+                                    <select required className="form-input" value={regData.blood} onChange={e => setRegData({ ...regData, blood: e.target.value })}>
+                                        <option value="">Seleccione RH</option>
+                                        <option value="O+">O+</option><option value="O-">O-</option>
+                                        <option value="A+">A+</option><option value="A-">A-</option>
+                                        <option value="B+">B+</option><option value="B-">B-</option>
+                                        <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                                    </select>
+                                </div>
+                                <div className="form-group md:col-span-2 lg:col-span-1">
+                                    <label className="form-label">Lugar de Nacimiento</label>
+                                    <input type="text" required className="form-input" value={regData.lugar_nacimiento} onChange={e => setRegData({ ...regData, lugar_nacimiento: e.target.value })} placeholder="Ciudad, Departamento" />
+                                </div>
+                                <div className="form-group md:col-span-2">
+                                    <label className="form-label">Dirección de Residencia</label>
+                                    <input type="text" required className="form-input" value={regData.address} onChange={e => setRegData({ ...regData, address: e.target.value })} placeholder="Dirección completa" />
+                                </div>
+
+                                {/* SECCION CONTACTO Y SALUD */}
+                                <div className="col-span-full mt-2">
+                                    <h4 className="flex items-center gap-2 text-xs font-black text-blue-600 uppercase tracking-widest border-b pb-2 mb-4">
+                                        <span className="material-symbols-outlined !text-sm">contact_phone</span> Contacto y Salud
+                                    </h4>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Teléfono Fijo</label>
+                                    <input type="text" required className="form-input" value={regData.phone} onChange={e => setRegData({ ...regData, phone: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Celular</label>
+                                    <input type="text" required className="form-input" value={regData.celular} onChange={e => setRegData({ ...regData, celular: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">EPS</label>
+                                    <input type="text" required className="form-input" value={regData.eps} onChange={e => setRegData({ ...regData, eps: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Religión</label>
+                                    <input type="text" required className="form-input" value={regData.religion} onChange={e => setRegData({ ...regData, religion: e.target.value })} />
+                                </div>
+
+                                {/* SECCION PADRES */}
+                                <div className="col-span-full mt-2">
+                                    <h4 className="flex items-center gap-2 text-xs font-black text-blue-600 uppercase tracking-widest border-b pb-2 mb-4">
+                                        <span className="material-symbols-outlined !text-sm">family_restroom</span> Información de los Padres
+                                    </h4>
+                                </div>
+                                {/* Padre */}
+                                <div className="form-group">
+                                    <label className="form-label font-bold text-slate-900 border-l-2 border-blue-200 pl-2 mb-2">Nombre del Padre</label>
+                                    <input type="text" required className="form-input" value={regData.padre} onChange={e => setRegData({ ...regData, padre: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Documento Padre</label>
+                                    <input type="text" required className="form-input" value={regData.docPadre} onChange={e => setRegData({ ...regData, docPadre: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Tel. Padre / Ocupación</label>
+                                    <div className="flex gap-2">
+                                        <input type="text" required className="form-input" value={regData.telPadre} onChange={e => setRegData({ ...regData, telPadre: e.target.value })} placeholder="Tel." />
+                                        <input type="text" required className="form-input" value={regData.ocupPadre} onChange={e => setRegData({ ...regData, ocupPadre: e.target.value })} placeholder="Ocup." />
+                                    </div>
+                                </div>
+                                {/* Madre */}
+                                <div className="form-group">
+                                    <label className="form-label font-bold text-slate-900 border-l-2 border-rose-200 pl-2 mb-2">Nombre de la Madre</label>
+                                    <input type="text" required className="form-input" value={regData.madre} onChange={e => setRegData({ ...regData, madre: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Documento Madre</label>
+                                    <input type="text" required className="form-input" value={regData.docMadre} onChange={e => setRegData({ ...regData, docMadre: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Tel. Madre / Ocupación</label>
+                                    <div className="flex gap-2">
+                                        <input type="text" required className="form-input" value={regData.telMadre} onChange={e => setRegData({ ...regData, telMadre: e.target.value })} placeholder="Tel." />
+                                        <input type="text" required className="form-input" value={regData.ocupMadre} onChange={e => setRegData({ ...regData, ocupMadre: e.target.value })} placeholder="Ocup." />
+                                    </div>
+                                </div>
+
+                                {/* OTROS */}
+                                <div className="col-span-full mt-2">
+                                    <h4 className="flex items-center gap-2 text-xs font-black text-blue-600 uppercase tracking-widest border-b pb-2 mb-4">
+                                        <span className="material-symbols-outlined !text-sm">psychology</span> Observaciones Adicionales
+                                    </h4>
+                                </div>
+                                <div className="form-group lg:col-span-2">
+                                    <label className="form-label">Fortalezas</label>
+                                    <textarea required className="form-input h-20 resize-none" value={regData.fortalezas} onChange={e => setRegData({ ...regData, fortalezas: e.target.value })} placeholder="Describa las principales fortalezas del estudiante..."></textarea>
+                                </div>
+                                <div className="form-group lg:col-span-1">
+                                    <label className="form-label">Debilidades</label>
+                                    <textarea required className="form-input h-20 resize-none" value={regData.debilidades} onChange={e => setRegData({ ...regData, debilidades: e.target.value })} placeholder="Aspectos a mejorar..."></textarea>
+                                </div>
+                            </div>
+
+                            <button type="submit" className="hidden" id="submit-hidden"></button>
+                        </form>
+
+                        <div className="modal-footer shrink-0 flex justify-between items-center bg-slate-50 border-t p-6">
+                            <p className="text-xs text-slate-500 max-w-[50%]">Al finalizar, tu usuario será creado y podrás acceder a la plataforma.</p>
+                            <div className="flex gap-3">
+                                <button type="button" onClick={() => setVerifiedStudent(null)} className="btn btn-ghost px-6 h-12">Cancelar</button>
+                                <button onClick={() => document.getElementById('submit-hidden').click()} className="btn btn-primary px-10 h-12 font-black shadow-lg shadow-blue-200" disabled={loading}>
+                                    {loading ? 'Procesando...' : 'Finalizar Registro'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
