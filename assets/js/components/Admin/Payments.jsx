@@ -370,6 +370,34 @@ export const PaymentsManager = () => {
         }
     };
 
+    const exportarMoraExcel = () => {
+        if (reporteEnMora.length === 0) return mostrarToast('No hay datos para exportar', 'warning');
+
+        const mesNombre = MESES.find(m => m.id === mesFiltro)?.label || 'Mes';
+        const anioNom = anioActivo?.anio || 'Año';
+
+        // Encabezados
+        let csvContent = "Grado;Nombre y Apellido;Saldo en Mora;Mes;Año\n";
+
+        // Datos
+        reporteEnMora.forEach(est => {
+            const nombreCompleto = `${est.nombres} ${est.apellidos}`;
+            const grado = est.cursos?.nombre || 'Sin Grado';
+            const saldo = est.saldoPendiente;
+            csvContent += `${grado};${nombreCompleto};${saldo};${mesNombre};${anioNom}\n`;
+        });
+
+        // Crear blob con BOM para Excel (UTF-8)
+        const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `estudiantes_en_mora_${mesNombre}_${anioNom}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -457,6 +485,15 @@ export const PaymentsManager = () => {
                                     <span className="text-lg font-black">${totalIngresos.toLocaleString()}</span>
                                 </div>
                             </div>
+                        )}
+                        {activeTab === 'en_mora' && (
+                            <button
+                                onClick={exportarMoraExcel}
+                                className="btn btn-ghost text-emerald-700 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 flex items-center gap-2"
+                            >
+                                <span className="material-symbols-outlined">description</span>
+                                Exportar a Excel
+                            </button>
                         )}
                     </div>
                 </div>
