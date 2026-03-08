@@ -43,7 +43,7 @@ export const PaymentsManager = () => {
         estudiante_id: '',
         estudiante_nombre: '',
         descuento_aplicado: 0,
-        mes: new Date().getMonth() + 1,
+        mes: '',
         monto_maximo_permitido: 0,
         monto: '',
         metodo_pago: 'transferencia',
@@ -298,11 +298,12 @@ export const PaymentsManager = () => {
                 const maxPermitido = Math.max(0, pEsperada - totalPagadoSinActual);
 
                 setFormData(prev => {
-                    if (prev.monto_maximo_permitido !== maxPermitido) {
+                    const debeActualizarMonto = !prev.monto || Number(prev.monto) <= 0;
+                    if (prev.monto_maximo_permitido !== maxPermitido || debeActualizarMonto) {
                         return {
                             ...prev,
                             monto_maximo_permitido: maxPermitido,
-                            monto: prev.monto <= 0 ? maxPermitido : prev.monto
+                            monto: debeActualizarMonto ? maxPermitido : prev.monto
                         };
                     }
                     return prev;
@@ -322,7 +323,8 @@ export const PaymentsManager = () => {
             estudiante_nombre: `${est.nombres} ${est.apellidos} - ${est.cursos?.nombre || 'Sin curso'}`,
             descuento_aplicado: est.descuento || 0,
             monto_maximo_permitido: pEsperada,
-            monto: pEsperada // Por defecto el valor a cancelar es la pensión esperada
+            monto: '', // Limpiar monto para forzar a que elijan mes y vean el saldo real
+            mes: '' // Asegurar que el mes permanezca en blanco al seleccionar estudiante
         });
         setSearchTerm('');
         setEstudiantesBuscados([]);
@@ -406,7 +408,7 @@ export const PaymentsManager = () => {
                     <p className="text-slate-500">Registra y consulta el estado de cuentas de los estudiantes.</p>
                 </div>
                 <button onClick={() => {
-                    setFormData({ ...initialFormState, mes: mesFiltro });
+                    setFormData(initialFormState);
                     setSearchTerm('');
                     setShowModal(true);
                 }} className="btn btn-primary">
@@ -690,34 +692,34 @@ export const PaymentsManager = () => {
                                                             autoFocus
                                                         />
                                                         {isSearching && <span className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>}
-                                                    </div>
 
-                                                    {estudiantesBuscados.length > 0 && searchTerm.length >= 3 && (
-                                                        <ul className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] max-h-60 overflow-y-auto divide-y divide-slate-100">
-                                                            {estudiantesBuscados.map(est => (
-                                                                <li
-                                                                    key={est.id}
-                                                                    className="p-3 hover:bg-slate-50 cursor-pointer transition-colors"
-                                                                    onClick={() => handleSelectEstudianteParaPago(est)}
-                                                                >
-                                                                    <div className="flex justify-between items-start gap-3">
-                                                                        <div>
-                                                                            <div className="font-bold text-slate-800 text-base md:text-lg leading-tight">{est.nombres} {est.apellidos}</div>
-                                                                            <div className="text-sm text-slate-500 flex flex-wrap gap-2 mt-2">
-                                                                                <span className="bg-slate-100 px-2 rounded text-slate-600 font-medium">{est.numero_documento}</span>
-                                                                                <span className="bg-blue-50 text-blue-700 font-medium px-2 rounded">{est.cursos?.nombre}</span>
+                                                        {estudiantesBuscados.length > 0 && searchTerm.length >= 3 && (
+                                                            <ul className="absolute top-full left-0 z-50 w-full bg-white border border-slate-200 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] max-h-60 overflow-y-auto divide-y divide-slate-100">
+                                                                {estudiantesBuscados.map(est => (
+                                                                    <li
+                                                                        key={est.id}
+                                                                        className="p-3 hover:bg-slate-50 cursor-pointer transition-colors"
+                                                                        onClick={() => handleSelectEstudianteParaPago(est)}
+                                                                    >
+                                                                        <div className="flex justify-between items-start gap-3">
+                                                                            <div>
+                                                                                <div className="font-bold text-slate-800 text-base md:text-lg leading-tight">{est.nombres} {est.apellidos}</div>
+                                                                                <div className="text-sm text-slate-500 flex flex-wrap gap-2 mt-2">
+                                                                                    <span className="bg-slate-100 px-2 rounded text-slate-600 font-medium">{est.numero_documento}</span>
+                                                                                    <span className="bg-blue-50 text-blue-700 font-medium px-2 rounded">{est.cursos?.nombre}</span>
+                                                                                </div>
                                                                             </div>
+                                                                            {est.descuento > 0 && (
+                                                                                <span className="shrink-0 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200">
+                                                                                    Desc. Aplicado
+                                                                                </span>
+                                                                            )}
                                                                         </div>
-                                                                        {est.descuento > 0 && (
-                                                                            <span className="shrink-0 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200">
-                                                                                Desc. Aplicado
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    )}
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        )}
+                                                    </div>
                                                     <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300 flex flex-col items-center justify-center text-center gap-2 text-slate-400 min-h-[120px]">
                                                         <span className="material-symbols-outlined text-4xl opacity-50">person_search</span>
                                                         <span className="text-sm">Utiliza el buscador para encontrar un estudiante registrado en el sistema.</span>
@@ -762,6 +764,7 @@ export const PaymentsManager = () => {
                                                         onChange={e => setFormData({ ...formData, mes: e.target.value })}
                                                         required
                                                     >
+                                                        <option value="" disabled>Seleccione Mes</option>
                                                         {MESES.map(m => (
                                                             <option key={m.id} value={m.id}>{m.label}</option>
                                                         ))}
@@ -784,7 +787,7 @@ export const PaymentsManager = () => {
                                                     {formData.monto > formData.monto_maximo_permitido && (
                                                         <p className="text-xs text-rose-500 font-medium mt-1.5 flex items-center gap-1">
                                                             <span className="material-symbols-outlined text-[14px]">error</span>
-                                                            Invalido: Excede ${formData.monto_maximo_permitido.toLocaleString()}
+                                                            El valor excede el saldo actual que es: ${formData.monto_maximo_permitido.toLocaleString()}
                                                         </p>
                                                     )}
                                                 </div>
