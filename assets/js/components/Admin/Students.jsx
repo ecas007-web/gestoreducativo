@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../config.jsx';
 import { mostrarToast } from '../../utils.jsx';
+import PizZip from 'pizzip';
+import Docxtemplater from 'docxtemplater';
+import { saveAs } from 'file-saver';
 
 export const StudentsManager = () => {
     const [students, setStudents] = useState([]);
@@ -18,6 +21,7 @@ export const StudentsManager = () => {
         religion: '', debilidades: '', fortalezas: ''
     });
     const [filters, setFilters] = useState({ query: '', courseId: '', status: '', anioId: '' });
+    const [generatingCert, setGeneratingCert] = useState(null);
 
     useEffect(() => {
         loadData();
@@ -126,6 +130,53 @@ export const StudentsManager = () => {
         setShowModal(true);
     };
 
+    const generateCertificate = async (student) => {
+        setGeneratingCert(student.id);
+        try {
+            const response = await fetch('/plantillas/plantilla_certificado.docx');
+            if (!response.ok) throw new Error('No se pudo cargar la plantilla del certificado');
+
+            const content = await response.arrayBuffer();
+            const zip = new PizZip(content);
+            const doc = new Docxtemplater(zip, {
+                paragraphLoop: true,
+                linebreaks: true,
+                delimiters: { start: '%', end: '%' }
+            });
+
+            // Formatear fecha actual
+            const fechaActual = new Date().toLocaleDateString('es-ES', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+
+            const data = {
+                'apellidos y nombre': `${student.apellidos} ${student.nombres}`.toUpperCase(),
+                'documento': `${student.tipo_documento} ${student.numero_documento}`,
+                'grado': student.cursos?.nombre || 'N/A',
+                'año': activeYear?.anio || new Date().getFullYear(),
+                'fecha actual': fechaActual
+            };
+
+            doc.render(data);
+
+            const out = doc.getZip().generate({
+                type: 'blob',
+                mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            });
+
+            saveAs(out, `Certificado_${student.apellidos}_${student.nombres}.docx`);
+            mostrarToast('Certificado generado correctamente', 'success');
+        } catch (err) {
+            console.error(err);
+            mostrarToast('Error al generar el certificado: ' + err.message, 'error');
+        } finally {
+            setGeneratingCert(null);
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -222,6 +273,18 @@ export const StudentsManager = () => {
                                     </td>
                                     <td className="text-right sticky right-0 bg-white z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">
                                         <div className="flex justify-end gap-1">
+                                            <button
+                                                onClick={() => generateCertificate(s)}
+                                                className={`btn btn-ghost btn-sm text-emerald-600 p-1 ${generatingCert === s.id ? 'animate-pulse' : ''}`}
+                                                title="Generar Certificado"
+                                                disabled={generatingCert === s.id}
+                                            >
+                                                {generatingCert === s.id ? (
+                                                    <span className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></span>
+                                                ) : (
+                                                    <span className="material-symbols-outlined !text-lg">description</span>
+                                                )}
+                                            </button>
                                             <button onClick={() => handleOpenModal(s)} className="btn btn-ghost btn-sm text-blue-600 p-1"><span className="material-symbols-outlined !text-lg">edit</span></button>
                                             <button onClick={async () => { if (confirm('¿Eliminar estudiante?')) { await supabase.from('estudiantes').delete().eq('id', s.id); loadData(); } }} className="btn btn-ghost btn-sm text-rose-600 p-1"><span className="material-symbols-outlined !text-lg">delete</span></button>
                                         </div>

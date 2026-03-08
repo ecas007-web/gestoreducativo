@@ -104,6 +104,14 @@ Las funcionalidades que debe tener la app son estas:
         nota: en el modulo “Parámetros de Años Académicos” se debe adicionar el campo valor de pensión, colocar para este año el valor de $210000
         hay estudiantes con descuento especial para todo el año, se debe permitir registra el descuento para que no salga en mora al sacar el reporte de los estudiantes  con mora
 
+reportes:
+    generar un certificado estudiantil tomando la plantilla ubicada en la ruta public/plantillas/plantilla_certificado.docx
+    los parámetros esta entre el símbolo %% 
+    •	apellidos y nombre
+    •	documento
+    •	grado
+    •	año
+    •	fecha actual: ejemplo de formato; “domingo 8 de marzo de 2026”
 
 
 
