@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './AuthContext.jsx';
 import { Layout } from './components/Layout.jsx';
 import { LoginPage } from './components/Login.jsx';
 import ResetPassword from './components/ResetPassword.jsx';
+import { NavigationProvider } from './context/NavigationContext.jsx';
 
 // Admin Components
 import { AdminDashboard } from './components/Admin/Dashboard.jsx';
@@ -29,6 +30,8 @@ import { TeacherProfile } from './components/Teacher/Profile.jsx';
 // Student Components
 import { StudentDashboard } from './components/Student/Dashboard.jsx';
 import { StudentProfile } from './components/Student/Profile.jsx';
+import { StudentObserver } from './components/Common/StudentObserver.jsx';
+import { ObserverReports } from './components/Common/ObserverReports.jsx';
 
 /**
  * Protector de Rutas: Verifica sesión y roles
@@ -73,7 +76,9 @@ const App = () => {
                 { path: '/admin/comportamiento', icon: 'psychology', label: 'Comportamiento' },
                 { path: '/admin/actividades', icon: 'list_alt', label: 'Actividades' },
                 { path: '/admin/cursos', icon: 'room_preferences', label: 'Cursos' },
-                { path: '/admin/materias', icon: 'menu_book', label: 'Materias' }
+                { path: '/admin/materias', icon: 'menu_book', label: 'Materias' },
+                { path: '/admin/observador', icon: 'visibility', label: 'Observador' },
+                { path: '/admin/reporte-observador', icon: 'lab_profile', label: 'Reporte Observador' }
             ]
         },
         {
@@ -101,6 +106,8 @@ const App = () => {
                 { path: '/docente/logros', icon: 'emoji_events', label: 'Logros Generales' },
                 { path: '/docente/comportamiento', icon: 'psychology', label: 'Comportamiento' },
                 { path: '/docente/actividades', icon: 'list_alt', label: 'Actividades' },
+                { path: '/docente/observador', icon: 'visibility', label: 'Observador' },
+                { path: '/docente/reporte-observador', icon: 'lab_profile', label: 'Reporte Observador' },
                 { path: '/docente/perfil', icon: 'person', label: 'Mi Perfil' }
             ]
         }
@@ -118,69 +125,75 @@ const App = () => {
 
     return (
         <AuthProvider>
-            <BrowserRouter>
-                <Routes>
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/reset-password" element={<ResetPassword />} />
+            <NavigationProvider>
+                <BrowserRouter>
+                    <Routes>
+                        <Route path="/login" element={<LoginPage />} />
+                        <Route path="/reset-password" element={<ResetPassword />} />
 
-                    {/* Rutas de Administrador */}
-                    <Route path="/admin/*" element={
-                        <PrivateRoute allowedRoles={['admin']}>
-                            <Layout roleTitle="Administrador" navigation={adminNav}>
-                                <Routes>
-                                    <Route path="dashboard" element={<AdminDashboard />} />
-                                    <Route path="estudiantes" element={<StudentsManager />} />
-                                    <Route path="docentes" element={<TeachersManager />} />
-                                    <Route path="anios-academicos" element={<AcademicYearsManager />} />
-                                    <Route path="escalas" element={<ScaleSettings />} />
-                                    <Route path="logros" element={<AchievementSettings />} />
-                                    <Route path="comportamiento" element={<BehaviorManagement />} />
-                                    <Route path="cursos" element={<CoursesManager />} />
-                                    <Route path="materias" element={<SubjectsManager />} />
-                                    <Route path="pagos" element={<PaymentsManager />} />
-                                    <Route path="actividades" element={<ActivitiesManager />} />
-                                    <Route path="descuentos" element={<DiscountsManager />} />
-                                    <Route path="boletines" element={<ReportsManager />} />
-                                    <Route path="*" element={<Navigate to="dashboard" replace />} />
-                                </Routes>
-                            </Layout>
-                        </PrivateRoute>
-                    } />
+                        {/* Rutas de Administrador */}
+                        <Route path="/admin/*" element={
+                            <PrivateRoute allowedRoles={['admin']}>
+                                <Layout roleTitle="Administrador" navigation={adminNav}>
+                                    <Routes>
+                                        <Route path="dashboard" element={<AdminDashboard />} />
+                                        <Route path="estudiantes" element={<StudentsManager />} />
+                                        <Route path="docentes" element={<TeachersManager />} />
+                                        <Route path="anios-academicos" element={<AcademicYearsManager />} />
+                                        <Route path="escalas" element={<ScaleSettings />} />
+                                        <Route path="logros" element={<AchievementSettings />} />
+                                        <Route path="comportamiento" element={<BehaviorManagement />} />
+                                        <Route path="cursos" element={<CoursesManager />} />
+                                        <Route path="materias" element={<SubjectsManager />} />
+                                        <Route path="pagos" element={<PaymentsManager />} />
+                                        <Route path="actividades" element={<ActivitiesManager />} />
+                                        <Route path="descuentos" element={<DiscountsManager />} />
+                                        <Route path="boletines" element={<ReportsManager />} />
+                                        <Route path="observador" element={<StudentObserver />} />
+                                        <Route path="reporte-observador" element={<ObserverReports />} />
+                                        <Route path="*" element={<Navigate to="dashboard" replace />} />
+                                    </Routes>
+                                </Layout>
+                            </PrivateRoute>
+                        } />
 
-                    {/* Rutas de Docente */}
-                    <Route path="/docente/*" element={
-                        <PrivateRoute allowedRoles={['docente']}>
-                            <Layout roleTitle="Docente" navigation={docenteNav}>
-                                <Routes>
-                                    <Route path="dashboard" element={<TeacherDashboard />} />
-                                    <Route path="logros" element={<AchievementSettings />} />
-                                    <Route path="comportamiento" element={<BehaviorManagement />} />
-                                    <Route path="calificaciones/:cursoId" element={<TeacherGrades />} />
-                                    <Route path="actividades" element={<ActivitiesManager />} />
-                                    <Route path="perfil" element={<TeacherProfile />} />
-                                    <Route path="*" element={<Navigate to="dashboard" replace />} />
-                                </Routes>
-                            </Layout>
-                        </PrivateRoute>
-                    } />
+                        {/* Rutas de Docente */}
+                        <Route path="/docente/*" element={
+                            <PrivateRoute allowedRoles={['docente']}>
+                                <Layout roleTitle="Docente" navigation={docenteNav}>
+                                    <Routes>
+                                        <Route path="dashboard" element={<TeacherDashboard />} />
+                                        <Route path="logros" element={<AchievementSettings />} />
+                                        <Route path="comportamiento" element={<BehaviorManagement />} />
+                                        <Route path="calificaciones/:cursoId" element={<TeacherGrades />} />
+                                        <Route path="actividades" element={<ActivitiesManager />} />
+                                        <Route path="observador" element={<StudentObserver />} />
+                                        <Route path="reporte-observador" element={<ObserverReports />} />
+                                        <Route path="perfil" element={<TeacherProfile />} />
+                                        <Route path="*" element={<Navigate to="dashboard" replace />} />
+                                    </Routes>
+                                </Layout>
+                            </PrivateRoute>
+                        } />
 
-                    {/* Rutas de Estudiante */}
-                    <Route path="/estudiante/*" element={
-                        <PrivateRoute allowedRoles={['estudiante']}>
-                            <Layout roleTitle="Estudiante" navigation={estudianteNav}>
-                                <Routes>
-                                    <Route path="dashboard" element={<StudentDashboard />} />
-                                    <Route path="perfil" element={<StudentProfile />} />
-                                    <Route path="*" element={<Navigate to="dashboard" replace />} />
-                                </Routes>
-                            </Layout>
-                        </PrivateRoute>
-                    } />
+                        {/* Rutas de Estudiante */}
+                        <Route path="/estudiante/*" element={
+                            <PrivateRoute allowedRoles={['estudiante']}>
+                                <Layout roleTitle="Estudiante" navigation={estudianteNav}>
+                                    <Routes>
+                                        <Route path="dashboard" element={<StudentDashboard />} />
+                                        <Route path="perfil" element={<StudentProfile />} />
+                                        <Route path="*" element={<Navigate to="dashboard" replace />} />
+                                    </Routes>
+                                </Layout>
+                            </PrivateRoute>
+                        } />
 
-                    <Route path="/" element={<Navigate to="/login" replace />} />
-                    <Route path="*" element={<div className="p-20 text-center font-bold text-slate-800">404 - Página no encontrada</div>} />
-                </Routes>
-            </BrowserRouter>
+                        <Route path="/" element={<Navigate to="/login" replace />} />
+                        <Route path="*" element={<div className="p-20 text-center font-bold text-slate-800">404 - Página no encontrada</div>} />
+                    </Routes>
+                </BrowserRouter>
+            </NavigationProvider>
         </AuthProvider>
     );
 };

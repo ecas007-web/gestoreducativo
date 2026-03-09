@@ -10,6 +10,9 @@ export const LoginPage = () => {
     const [rol, setRol] = useState('admin');
     const [loading, setLoading] = useState(false);
     const [view, setView] = useState('login'); // 'login', 'student_register', 'admin_register', 'forgot_password'
+    const [showLoginPass, setShowLoginPass] = useState(false);
+    const [showRegPass, setShowRegPass] = useState(false);
+    const [showAdminPass, setShowAdminPass] = useState(false);
 
     // States comunes
     const [email, setEmail] = useState('');
@@ -279,11 +282,23 @@ export const LoginPage = () => {
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">Contraseña</label>
-                                    <input
-                                        type="password" required className="form-input"
-                                        placeholder="••••••••"
-                                        value={password} onChange={e => setPassword(e.target.value)}
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type={showLoginPass ? "text" : "password"}
+                                            required className="form-input pr-10"
+                                            placeholder="••••••••"
+                                            value={password} onChange={e => setPassword(e.target.value)}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowLoginPass(!showLoginPass)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+                                        >
+                                            <span className="material-symbols-outlined !text-xl">
+                                                {showLoginPass ? 'visibility_off' : 'visibility'}
+                                            </span>
+                                        </button>
+                                    </div>
                                     <div className="flex justify-end">
                                         <button
                                             type="button"
@@ -408,10 +423,23 @@ export const LoginPage = () => {
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">Contraseña</label>
-                                    <input
-                                        type="password" required className="form-input" placeholder="••••••••"
-                                        value={password} onChange={e => setPassword(e.target.value)}
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type={showAdminPass ? "text" : "password"}
+                                            required className="form-input pr-10"
+                                            placeholder="••••••••"
+                                            value={password} onChange={e => setPassword(e.target.value)}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAdminPass(!showAdminPass)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+                                        >
+                                            <span className="material-symbols-outlined !text-xl">
+                                                {showAdminPass ? 'visibility_off' : 'visibility'}
+                                            </span>
+                                        </button>
+                                    </div>
                                 </div>
                                 <button type="submit" className="btn btn-primary btn-block pt-3" disabled={loading}>
                                     {loading ? 'Procesando...' : 'Crear Administrador'}
@@ -490,11 +518,36 @@ export const LoginPage = () => {
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">Contraseña</label>
-                                    <input type="password" required className="form-input" value={regData.pass} onChange={e => setRegData({ ...regData, pass: e.target.value })} placeholder="••••••••" />
+                                    <div className="relative">
+                                        <input
+                                            type={showRegPass ? "text" : "password"}
+                                            required className="form-input pr-10"
+                                            value={regData.pass}
+                                            onChange={e => setRegData({ ...regData, pass: e.target.value })}
+                                            placeholder="••••••••"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowRegPass(!showRegPass)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+                                        >
+                                            <span className="material-symbols-outlined !text-xl">
+                                                {showRegPass ? 'visibility_off' : 'visibility'}
+                                            </span>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">Confirmar Contraseña</label>
-                                    <input type="password" required className="form-input" value={regData.confirmPass} onChange={e => setRegData({ ...regData, confirmPass: e.target.value })} placeholder="••••••••" />
+                                    <div className="relative">
+                                        <input
+                                            type={showRegPass ? "text" : "password"}
+                                            required className="form-input pr-10"
+                                            value={regData.confirmPass}
+                                            onChange={e => setRegData({ ...regData, confirmPass: e.target.value })}
+                                            placeholder="••••••••"
+                                        />
+                                    </div>
                                 </div>
 
                                 {/* SECCION PERSONALES */}

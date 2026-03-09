@@ -26,31 +26,37 @@ export function mostrarToast(mensaje, tipo = 'info') {
     };
 
     const toast = document.createElement('div');
-    toast.className = `flex items-center gap-3 px-5 py-4 rounded-xl border shadow-lg text-sm font-medium transition-all duration-300 ${colores[tipo]}`;
-    toast.style.cssText = 'min-width:280px;max-width:380px;opacity:0;transform:translateX(20px);';
+    toast.className = `flex items-center gap-4 px-6 py-5 rounded-2xl border-2 shadow-2xl text-lg font-bold transition-all duration-500 ${colores[tipo]}`;
+    toast.style.cssText = 'min-width:340px;max-width:500px;opacity:0;transform:translateY(-20px) scale(0.95);';
     toast.innerHTML = `
-    <span class="material-symbols-outlined text-xl">${iconos[tipo]}</span>
-    <span class="flex-1">${mensaje}</span>
-    <button class="ml-2 opacity-60 hover:opacity-100 close-toast">
-      <span class="material-symbols-outlined text-base">close</span>
+    <span class="material-symbols-outlined text-3xl shrink-0">${iconos[tipo]}</span>
+    <span class="flex-1 leading-tight">${mensaje}</span>
+    <button class="ml-4 p-1 rounded-full hover:bg-black/5 transition-colors close-toast shrink-0">
+      <span class="material-symbols-outlined text-xl">close</span>
     </button>`;
 
     container.appendChild(toast);
 
-    // Event listener for close button (inline onclick doesn't work well with ESM sometimes)
-    toast.querySelector('.close-toast').addEventListener('click', () => toast.remove());
+    // Event listener for close button
+    toast.querySelector('.close-toast').addEventListener('click', () => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-20px) scale(0.95)';
+        setTimeout(() => toast.remove(), 500);
+    });
 
     requestAnimationFrame(() => {
-        toast.style.opacity = '1';
-        toast.style.transform = 'translateX(0)';
+        setTimeout(() => {
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0) scale(1)';
+        }, 10);
     });
     setTimeout(() => {
         if (toast.parentElement) {
             toast.style.opacity = '0';
-            toast.style.transform = 'translateX(20px)';
-            setTimeout(() => toast.remove(), 300);
+            toast.style.transform = 'translateY(-20px) scale(0.95)';
+            setTimeout(() => toast.remove(), 500);
         }
-    }, 5000);
+    }, 6000);
 }
 
 /**
