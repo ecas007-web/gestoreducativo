@@ -19,6 +19,9 @@ export const TeacherGrades = () => {
     const [achievement, setAchievement] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    const [localNotas, setLocalNotas] = useState({});
+    const [savingBulk, setSavingBulk] = useState(false);
+
     useEffect(() => {
         loadData();
     }, [cursoId]);
@@ -57,14 +60,51 @@ export const TeacherGrades = () => {
                 .match({ materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id }),
             supabase.from('logros_generales')
                 .select('logro')
-                .match({ curso_id: cursoId, materia_id: selectedMateria, anio_academico_id: activeYear.id })
+                .match({ curso_id: cursoId, materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id })
                 .maybeSingle()
         ]);
-        setNotas(gRes.data || []);
+
+        const gradesMap = {};
+        (gRes.data || []).forEach(n => {
+            gradesMap[n.estudiante_id] = n;
+        });
+        setLocalNotas(gradesMap);
         setAchievement(aRes.data?.logro || null);
     };
 
-    const saveGrade = async (estId, data) => {
+    const calculateValues = (row) => {
+        const tcKeys = ['tc1', 'tc2', 'tc3', 'tc4'];
+        const thKeys = ['th1', 'th2', 'th3', 'th4'];
+
+        const tcVals = tcKeys.map(k => row[k]).filter(v => v !== '' && v !== null && v !== undefined);
+        const thVals = thKeys.map(k => row[k]).filter(v => v !== '' && v !== null && v !== undefined);
+
+        const tcAvgVal = tcVals.length > 0 ? tcVals.reduce((acc, v) => acc + parseFloat(v), 0) / tcVals.length : 0;
+        const thAvgVal = thVals.length > 0 ? thVals.reduce((acc, v) => acc + parseFloat(v), 0) / thVals.length : 0;
+
+        const allKeys = [...tcKeys, ...thKeys, 'cuaderno', 'examen'];
+        const allSet = allKeys.every(k => row[k] !== '' && row[k] !== null && row[k] !== undefined);
+
+        if (!allSet) return { final: null, escala: '', logro: '' };
+
+        const cuad = parseFloat(row.cuaderno);
+        const exam = parseFloat(row.examen);
+
+        const final = (tcAvgVal * 0.3) + (thAvgVal * 0.3) + (cuad * 0.1) + (exam * 0.3);
+        const finalFixed = parseFloat(final.toFixed(1));
+
+        const scaleMatch = scales.find(s => finalFixed >= s.rango_minimo && finalFixed <= s.rango_maximo);
+        const escalaTexto = scaleMatch ? scaleMatch.escala : '';
+        const achievementText = scaleMatch && achievement ? `${scaleMatch.verbo} ${achievement}` : '';
+
+        return {
+            final: finalFixed,
+            escala: escalaTexto,
+            logro: achievementText
+        };
+    };
+
+    const saveGrade = async (estId, data, silent = false) => {
         if (!activeYear) return mostrarToast('No hay año académico activo', 'error');
 
         try {
@@ -72,23 +112,63 @@ export const TeacherGrades = () => {
                 .match({ estudiante_id: estId, materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id })
                 .maybeSingle();
 
+            const calc = calculateValues(data);
+
             const payload = {
                 estudiante_id: estId,
                 materia_id: selectedMateria,
                 curso_id: cursoId,
                 periodo,
                 anio_academico_id: activeYear.id,
-                ...data,
+                tc1: data.tc1 || 0, tc2: data.tc2 || 0, tc3: data.tc3 || 0, tc4: data.tc4 || 0,
+                th1: data.th1 || 0, th2: data.th2 || 0, th3: data.th3 || 0, th4: data.th4 || 0,
+                cuaderno: data.cuaderno || 0, examen: data.examen || 0,
+                nota: calc.final || 0,
+                nota_final: calc.final,
+                escala_valorativa: calc.escala,
+                logro_calculado: calc.logro,
                 updated_at: new Date()
             };
 
             if (existe) await supabase.from('calificaciones').update(payload).eq('id', existe.id);
             else await supabase.from('calificaciones').insert([payload]);
 
-            mostrarToast('Registro actualizado', 'success');
-            loadGrades();
+            if (!silent) {
+                mostrarToast('Registro actualizado', 'success');
+                // Don't reload everything for a single save, just update that local record if needed
+                // but for simplicity we keep it or update local state
+            }
         } catch (err) {
-            mostrarToast(err.message, 'error');
+            if (!silent) mostrarToast(err.message, 'error');
+            throw err;
+        }
+    };
+
+    const handleSaveAll = async () => {
+        setSavingBulk(true);
+        let successCount = 0;
+        let errorCount = 0;
+
+        try {
+            // Only save filtered ones or all in current view? 
+            // Usually "Save All" means "Everything currently visible/loaded for this filter"
+            for (const student of filteredStudents) {
+                const data = localNotas[student.id];
+                if (data) {
+                    try {
+                        await saveGrade(student.id, data, true);
+                        successCount++;
+                    } catch (e) {
+                        errorCount++;
+                    }
+                }
+            }
+            mostrarToast(`Proceso completado: ${successCount} guardados, ${errorCount} errores`, successCount > 0 ? 'success' : 'error');
+            loadGrades(); // Reload to sync with DB
+        } catch (err) {
+            mostrarToast('Error en el proceso masivo', 'error');
+        } finally {
+            setSavingBulk(false);
         }
     };
 
@@ -111,7 +191,7 @@ export const TeacherGrades = () => {
                 </div>
             </div>
 
-            <div className="card grid grid-cols-1 md:grid-cols-3 gap-6 md:w-1/2">
+            <div className="card grid grid-cols-1 md:grid-cols-4 gap-6 w-full">
                 <div className="form-group">
                     <label className="form-label">Asignatura</label>
                     <select className="form-input" value={selectedMateria} onChange={e => setSelectedMateria(e.target.value)}>
@@ -128,17 +208,31 @@ export const TeacherGrades = () => {
                         <option value="P4">Cuarto Periodo</option>
                     </select>
                 </div>
-                <div className="form-group relative">
+                <div className="md:col-span-1 form-group relative">
                     <label className="form-label">Filtrar Estudiante</label>
-                    <input
-                        type="text"
-                        className="form-input w-full"
-                        placeholder="Buscar o seleccionar..."
-                        value={query}
-                        onChange={e => { setQuery(e.target.value); setShowDropdown(true); }}
-                        onFocus={() => setShowDropdown(true)}
-                        onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-                    />
+                    <div className="flex gap-1">
+                        <input
+                            type="text"
+                            className="form-input flex-1"
+                            placeholder="Buscar o seleccionar..."
+                            value={query}
+                            onChange={e => { setQuery(e.target.value); setShowDropdown(true); }}
+                            onFocus={() => setShowDropdown(true)}
+                            onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                        />
+                        {selectedMateria && filteredStudents.length > 0 && (
+                            <button
+                                onClick={handleSaveAll}
+                                disabled={savingBulk}
+                                className="btn btn-primary h-12 px-6 flex items-center gap-2 shadow-lg shadow-blue-200"
+                            >
+                                <span className={`material-symbols-outlined ${savingBulk ? 'animate-spin' : ''}`}>
+                                    {savingBulk ? 'sync' : 'done_all'}
+                                </span>
+                                <span className="font-bold">{savingBulk ? 'guardando...' : 'guardar todo'}</span>
+                            </button>
+                        )}
+                    </div>
                     {showDropdown && filteredStudents.length > 0 && (
                         <ul className="absolute z-50 w-full left-0 top-[100%] bg-white border border-slate-200 mt-1 rounded-xl shadow-lg max-h-60 overflow-y-auto py-1 text-left">
                             {filteredStudents.map(s => (
@@ -162,13 +256,13 @@ export const TeacherGrades = () => {
 
             <div className="card p-0 overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="data-table border-collapse min-w-[1200px]">
+                    <table className="data-table border-collapse min-w-[1600px]">
                         <thead>
                             <tr className="bg-slate-50">
                                 <th className="sticky left-0 bg-slate-50 z-10 w-64 border-r">Estudiante</th>
                                 <th colSpan="5" className="text-center bg-blue-50/30 border-r">Tareas Clase (30%)</th>
                                 <th colSpan="5" className="text-center bg-emerald-50/30 border-r">Tareas Casa (30%)</th>
-                                <th className="text-center bg-amber-50/30 border-r">Cuad. (10%)</th>
+                                <th className="text-center bg-amber-50/30 border-r">Cuaderno (10%)</th>
                                 <th className="text-center bg-violet-50/30 border-r">Examen (30%)</th>
                                 <th className="text-center bg-slate-100 border-r">Final</th>
                                 <th className="text-center bg-slate-50 border-r">Escala</th>
@@ -177,29 +271,41 @@ export const TeacherGrades = () => {
                             </tr>
                             <tr className="text-[10px] uppercase tracking-tighter text-slate-400">
                                 <th className="sticky left-0 bg-slate-50 z-10 border-r"></th>
-                                <th className="border-r w-10 p-1 text-center">TC1</th>
-                                <th className="border-r w-10 p-1 text-center">TC2</th>
-                                <th className="border-r w-10 p-1 text-center">TC3</th>
-                                <th className="border-r w-10 p-1 text-center">TC4</th>
-                                <th className="border-r w-12 p-1 text-center bg-blue-100/50 text-blue-700 font-bold">Prom</th>
-                                <th className="border-r w-10 p-1 text-center">TH1</th>
-                                <th className="border-r w-10 p-1 text-center">TH2</th>
-                                <th className="border-r w-10 p-1 text-center">TH3</th>
-                                <th className="border-r w-10 p-1 text-center">TH4</th>
-                                <th className="border-r w-12 p-1 text-center bg-emerald-100/50 text-emerald-700 font-bold">Prom</th>
-                                <th className="border-r w-16 p-1 text-center">Nota</th>
-                                <th className="border-r w-16 p-1 text-center">Nota</th>
-                                <th className="border-r w-16 p-1 font-bold text-center">Def</th>
+                                <th className="border-r w-20 p-1 text-center">TC_1</th>
+                                <th className="border-r w-20 p-1 text-center">TC_2</th>
+                                <th className="border-r w-20 p-1 text-center">TC_3</th>
+                                <th className="border-r w-20 p-1 text-center">TC_4</th>
+                                <th className="border-r w-20 p-1 text-center bg-blue-100/50 text-blue-700 font-bold">Prom</th>
+                                <th className="border-r w-20 p-1 text-center">TH_1</th>
+                                <th className="border-r w-20 p-1 text-center">TH_2</th>
+                                <th className="border-r w-20 p-1 text-center">TH_3</th>
+                                <th className="border-r w-20 p-1 text-center">TH_4</th>
+                                <th className="border-r w-20 p-1 text-center bg-emerald-100/50 text-emerald-700 font-bold">Prom</th>
+                                <th className="border-r w-24 p-1 text-center">Cuaderno</th>
+                                <th className="border-r w-24 p-1 text-center">Examen</th>
+                                <th className="border-r w-24 p-1 font-bold text-center">Def</th>
                                 <th className="border-r"></th>
                                 <th className="border-r"></th>
                                 <th></th>
                             </tr>
                         </thead>
                         <tbody>
-                            {selectedMateria ? filteredStudents.map(s => {
-                                const notaObj = notas.find(n => n.estudiante_id === s.id);
-                                return <GradeRow key={s.id} student={s} initialData={notaObj} scales={scales} globalAchievement={achievement} onSave={saveGrade} />;
-                            }) : (
+                            {selectedMateria ? filteredStudents.map(s => (
+                                <GradeRow
+                                    key={s.id}
+                                    student={s}
+                                    data={localNotas[s.id] || {}}
+                                    scales={scales}
+                                    globalAchievement={achievement}
+                                    onChange={(newData) => {
+                                        setLocalNotas(prev => ({
+                                            ...prev,
+                                            [s.id]: { ...(prev[s.id] || {}), ...newData }
+                                        }));
+                                    }}
+                                    onSave={() => saveGrade(s.id, localNotas[s.id])}
+                                />
+                            )) : (
                                 <tr><td colSpan="16" className="text-center py-20 text-slate-400 font-medium">Selecciona una materia para cargar el listado.</td></tr>
                             )}
                         </tbody>
@@ -210,18 +316,14 @@ export const TeacherGrades = () => {
     );
 };
 
-const GradeRow = ({ student, initialData, scales, globalAchievement, onSave }) => {
+const GradeRow = ({ student, data, scales, globalAchievement, onChange, onSave }) => {
     const defaultData = {
         tc1: '', tc2: '', tc3: '', tc4: '',
         th1: '', th2: '', th3: '', th4: '',
         cuaderno: '', examen: ''
     };
 
-    const [row, setRow] = useState(initialData || defaultData);
-
-    useEffect(() => {
-        setRow(initialData || defaultData);
-    }, [initialData]);
+    const row = { ...defaultData, ...data };
 
     const calculateFinal = () => {
         const tcKeys = ['tc1', 'tc2', 'tc3', 'tc4'];
@@ -266,20 +368,7 @@ const GradeRow = ({ student, initialData, scales, globalAchievement, onSave }) =
     const handleInput = (field, val) => {
         const num = val === '' ? '' : parseFloat(val);
         if (num !== '' && (num < 0 || num > 5)) return;
-        setRow({ ...row, [field]: val });
-    };
-
-    const handleSave = () => {
-        const dataToSave = {
-            tc1: row.tc1 || 0, tc2: row.tc2 || 0, tc3: row.tc3 || 0, tc4: row.tc4 || 0,
-            th1: row.th1 || 0, th2: row.th2 || 0, th3: row.th3 || 0, th4: row.th4 || 0,
-            cuaderno: row.cuaderno || 0, examen: row.examen || 0,
-            nota: calc.final || 0, // Fallback to nota column for compatibility
-            nota_final: calc.final,
-            escala_valorativa: calc.escala,
-            logro_calculado: calc.logro
-        };
-        onSave(student.id, dataToSave);
+        onChange({ [field]: val });
     };
 
     return (
@@ -296,14 +385,14 @@ const GradeRow = ({ student, initialData, scales, globalAchievement, onSave }) =
             <GradeCell value={row.tc2} onChange={v => handleInput('tc2', v)} className="bg-blue-50/10" />
             <GradeCell value={row.tc3} onChange={v => handleInput('tc3', v)} className="bg-blue-50/10" />
             <GradeCell value={row.tc4} onChange={v => handleInput('tc4', v)} className="bg-blue-50/10" />
-            <td className="text-center bg-blue-100/30 font-black text-slate-700 border-r">{calc.tcAvg}</td>
+            <td className="text-center bg-blue-100/30 font-black text-slate-900 border-r">{calc.tcAvg}</td>
 
             {/* Tareas Casa */}
             <GradeCell value={row.th1} onChange={v => handleInput('th1', v)} className="bg-emerald-50/10" />
             <GradeCell value={row.th2} onChange={v => handleInput('th2', v)} className="bg-emerald-50/10" />
             <GradeCell value={row.th3} onChange={v => handleInput('th3', v)} className="bg-emerald-50/10" />
             <GradeCell value={row.th4} onChange={v => handleInput('th4', v)} className="bg-emerald-50/10" />
-            <td className="text-center bg-emerald-100/30 font-black text-slate-700 border-r">{calc.thAvg}</td>
+            <td className="text-center bg-slate-100 font-black text-slate-900 border-r">{calc.thAvg}</td>
 
             {/* Cuaderno y Examen */}
             <GradeCell value={row.cuaderno} onChange={v => handleInput('cuaderno', v)} className="bg-amber-50/10 border-r" />
@@ -334,7 +423,7 @@ const GradeRow = ({ student, initialData, scales, globalAchievement, onSave }) =
             </td>
 
             <td className="text-center p-2">
-                <button onClick={handleSave} className="btn btn-primary btn-sm w-full h-10 flex items-center justify-center p-0 rounded-xl">
+                <button onClick={onSave} className="btn btn-primary btn-sm w-full h-10 flex items-center justify-center p-0 rounded-xl">
                     <span className="material-symbols-outlined text-lg">save</span>
                 </button>
             </td>

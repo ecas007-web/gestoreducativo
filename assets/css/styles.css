@@ -187,6 +187,19 @@ body {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
+/* Chrome, Safari, Edge, Opera */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+  appearance: none;
+}
+
 .form-input.error {
   border-color: var(--error);
 }
@@ -692,10 +705,16 @@ body {
   text-transform: uppercase;
 }
 
+.role-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--primary-light);
+}
+
 .role-btn.active {
-  background: white;
-  color: var(--primary);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 8px 20px rgba(29, 78, 216, 0.25);
+  transform: translateY(-2px);
 }
 
 /* Additional Animations */
