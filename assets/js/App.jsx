@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { AuthProvider, useAuth } from './AuthContext.jsx';
 import { Layout } from './components/Layout.jsx';
 import { LoginPage } from './components/Login.jsx';
+import ResetPassword from './components/ResetPassword.jsx';
 
 // Admin Components
 import { AdminDashboard } from './components/Admin/Dashboard.jsx';
@@ -120,6 +121,7 @@ const App = () => {
             <BrowserRouter>
                 <Routes>
                     <Route path="/login" element={<LoginPage />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
 
                     {/* Rutas de Administrador */}
                     <Route path="/admin/*" element={
