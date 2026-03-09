@@ -9,7 +9,7 @@ export const LoginPage = () => {
     const { setProfile } = useAuth();
     const [rol, setRol] = useState('admin');
     const [loading, setLoading] = useState(false);
-    const [view, setView] = useState('login'); // 'login', 'student_register', 'admin_register'
+    const [view, setView] = useState('login'); // 'login', 'student_register', 'admin_register', 'forgot_password'
 
     // States comunes
     const [email, setEmail] = useState('');
@@ -46,6 +46,24 @@ export const LoginPage = () => {
         fortalezas: ''
     });
     const [verifiedStudent, setVerifiedStudent] = useState(null);
+    const [recoverySent, setRecoverySent] = useState(false);
+
+    const handleResetRequest = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${window.location.origin}/reset-password`,
+            });
+            if (error) throw error;
+            setRecoverySent(true);
+            mostrarToast('Enlace de recuperación enviado a tu correo.', 'success');
+        } catch (err) {
+            mostrarToast(err.message, 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -266,6 +284,15 @@ export const LoginPage = () => {
                                         placeholder="••••••••"
                                         value={password} onChange={e => setPassword(e.target.value)}
                                     />
+                                    <div className="flex justify-end">
+                                        <button
+                                            type="button"
+                                            onClick={() => { setView('forgot_password'); setRecoverySent(false); }}
+                                            className="text-xl font-bold text-blue-600 hover:underline"
+                                        >
+                                            ¿Olvidaste tu contraseña?
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <button type="submit" className="btn btn-primary btn-block py-3 mt-4" disabled={loading}>
@@ -278,13 +305,13 @@ export const LoginPage = () => {
                                 <div className="flex flex-col gap-2">
                                     <button
                                         onClick={() => setView('student_register')}
-                                        className="text-blue-600 font-bold hover:underline transition-all text-sm"
+                                        className="text-blue-600 font-bold hover:underline transition-all text-xl"
                                     >
                                         Completar Registro Estudiante
                                     </button>
                                     <button
                                         onClick={() => setView('admin_register')}
-                                        className="text-slate-500 hover:text-slate-800 font-bold transition-all text-xs uppercase tracking-widest"
+                                        className="text-slate-900 hover:text-slate-800 font-bold transition-all text-xs uppercase tracking-widest"
                                     >
                                         Registrar como Administrador
                                     </button>
@@ -390,6 +417,43 @@ export const LoginPage = () => {
                                     {loading ? 'Procesando...' : 'Crear Administrador'}
                                 </button>
                             </form>
+                        </div>
+                    )}
+
+                    {view === 'forgot_password' && (
+                        <div className="w-full max-w-sm animate-fadeIn">
+                            <button onClick={() => setView('login')} className="btn btn-ghost btn-sm mb-4 px-0">
+                                <span className="material-symbols-outlined">arrow_back</span> Volver al login
+                            </button>
+                            <h2 className="text-3xl font-black text-slate-800 mb-2">Recuperar Acceso</h2>
+                            <p className="text-slate-500 mb-8 font-medium">Ingresa tu correo para recibir un enlace de restablecimiento.</p>
+
+                            {!recoverySent ? (
+                                <form onSubmit={handleResetRequest} className="space-y-5">
+                                    <div className="form-group">
+                                        <label className="form-label">Correo Electrónico</label>
+                                        <input
+                                            type="email" required className="form-input"
+                                            placeholder="ejemplo@correo.com"
+                                            value={email} onChange={e => setEmail(e.target.value)}
+                                        />
+                                    </div>
+                                    <button type="submit" className="btn btn-primary btn-block py-3" disabled={loading}>
+                                        {loading ? 'Enviando...' : 'Enviar Instrucciones'}
+                                    </button>
+                                </form>
+                            ) : (
+                                <div className="text-center p-8 bg-blue-50 rounded-2xl border border-blue-100">
+                                    <span className="material-symbols-outlined text-blue-600 text-5xl mb-4">mail</span>
+                                    <h3 className="text-xl font-black text-slate-800 mb-2">¡Correo Enviado!</h3>
+                                    <p className="text-slate-600 text-sm leading-relaxed">
+                                        Hemos enviado un enlace a <strong>{email}</strong>. Por favor revisa tu bandeja de entrada y sigue las instrucciones.
+                                    </p>
+                                    <button onClick={() => setView('login')} className="btn btn-secondary btn-block mt-6">
+                                        Entendido
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
