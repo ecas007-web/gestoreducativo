@@ -33,7 +33,23 @@ export const AuthProvider = ({ children }) => {
         setLoading(true);
         try {
             const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
-            if (data) setProfile(data);
+            if (data) {
+                // Si es docente, pre-cargar sus cursos asignados
+                if (data.rol === 'docente') {
+                    const { data: teacherData } = await supabase
+                        .from('docentes')
+                        .select('id, docente_cursos(cursos(*))')
+                        .eq('user_id', userId)
+                        .maybeSingle();
+
+                    if (teacherData) {
+                        data.assignedCourses = teacherData.docente_cursos
+                            ?.map(dc => dc.cursos)
+                            .filter(Boolean) || [];
+                    }
+                }
+                setProfile(data);
+            }
         } catch (err) {
             console.error("Error fetching profile:", err);
         } finally {
