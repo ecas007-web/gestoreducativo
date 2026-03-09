@@ -1,20 +1,23 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext.jsx';
-import { SCHOOL_NAME } from '../config.jsx';
-import { supabase } from '../config.jsx';
+import { useNavigationGuard } from '../context/NavigationContext.jsx';
+import { SCHOOL_NAME, supabase } from '../config.jsx';
 
 export const Layout = ({ children, roleTitle, navigation }) => {
     const { profile } = useAuth();
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const { isDirty, showConfirmModal, attemptNavigation, confirmNavigation, cancelNavigation } = useNavigationGuard();
 
     const nombre = `${profile?.nombres || ''} ${profile?.apellidos || ''}`.trim() || profile?.correo || 'Usuario';
     const initial = nombre.charAt(0).toUpperCase();
 
     const cerrarSesion = async () => {
-        await supabase.auth.signOut();
-        window.location.href = '/login';
+        attemptNavigation(async () => {
+            await supabase.auth.signOut();
+            window.location.href = '/login';
+        });
     };
 
     return (
@@ -39,6 +42,13 @@ export const Layout = ({ children, roleTitle, navigation }) => {
                                 <Link
                                     key={link.path}
                                     to={link.path}
+                                    onClick={(e) => {
+                                        if (location.pathname.startsWith(link.path)) return;
+                                        if (isDirty) {
+                                            e.preventDefault();
+                                            attemptNavigation(link.path);
+                                        }
+                                    }}
                                     className={`sidebar-link ${location.pathname.startsWith(link.path) ? 'active' : ''}`}
                                 >
                                     <span className="material-symbols-outlined sidebar-icon">{link.icon}</span>
@@ -83,6 +93,38 @@ export const Layout = ({ children, roleTitle, navigation }) => {
                     {children}
                 </main>
             </div>
+
+            {/* Modal Global de Confirmación de Navegación */}
+            {showConfirmModal && (
+                <div className="modal-backdrop">
+                    <div className="modal animate-fadeInUp">
+                        <div className="modal-header">
+                            <h3 className="modal-title flex items-center gap-2">
+                                <span className="material-symbols-outlined text-amber-500">warning</span>
+                                Cambios sin guardar
+                            </h3>
+                        </div>
+                        <div className="modal-body p-8">
+                            <p className="text-slate-600 font-medium leading-relaxed">
+                                Tienes cambios realizados que no han sido guardados.
+                                <br /><br />
+                                ¿Deseas <strong>guardar</strong> los cambios antes de salir o prefieres <strong>cancelarlos</strong>?
+                            </p>
+                        </div>
+                        <div className="modal-footer flex-col sm:flex-row gap-4">
+                            <button onClick={cancelNavigation} className="btn btn-ghost w-full sm:w-auto order-3 sm:order-1">
+                                Continuar editando
+                            </button>
+                            <button onClick={() => confirmNavigation(false)} className="btn border border-red-200 text-red-600 hover:bg-red-50 w-full sm:w-auto order-2 sm:order-2">
+                                Descartar cambios
+                            </button>
+                            <button onClick={() => confirmNavigation(true)} className="btn btn-primary w-full sm:w-auto order-1 sm:order-3 shadow-lg shadow-blue-100">
+                                Guardar y Salir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

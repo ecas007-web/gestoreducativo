@@ -147,9 +147,33 @@ los parámetros esta entre el símbolo %%
 
 
 
+ reporte de observador del alumno
+ crear un modulo para generar reporte de observador del alumno en este modulo se debe agragar un boton para generar reporte de observador del alumno para todos los estudiantes del filtro seleccionado, tomando la plantilla ubicada en la ruta public/plantillas/plantilla_observador.docx
+    
+los parámetros esta entre el símbolo %% 
+
+      el encabezado son los datos que estan en la tabla estudiantes
+   
+
+    el detalle son los datos almacenados en la tabla de estudiante_observador con los campos
+        -   periodo
+        -   fortalezas
+        -   debilidades
+        -   estrategias
+        -   observaciones
+
+los parametros del documento tiene los mismo nombres que se entuentran en las tablas de estudiantes y estudiante_observador
+
+se debe permitir buscar por:
+    •   estudiante
+    •   periodo
+    •   grado
+ 
+ debe terner las mismas obsiones del modulo de boletines
 
 
 
+CERTIFICADO ESTUDIANTIL
  se debe agragar un boton en el modulo de estudiantes para generar un certificado estudiantil tomando la plantilla ubicada en la ruta public/plantillas/plantilla_certificado.docx
     los parámetros esta entre el símbolo %% 
     •	apellidos y nombre
@@ -157,6 +181,32 @@ los parámetros esta entre el símbolo %%
     •	grado
     •	año
     •	fecha actual: ejemplo de formato; “domingo 8 de marzo de 2026”
+
+Modulo de actividades:
+    Este es un modulo donde se gestionan las actividades del periodo, las actividades son:
+    -	Tarea en clase 1
+    -	Tarea en clase 2
+    -	Tarea en clase 3
+    -	Tarea en clase 4
+    -	Tarea en casa 1
+    -	Tarea en casa 2
+    -	Tarea en casa 3
+    -	Tarea en casa 4
+    Cada una de estas tiene una descripción,  los campos del modulo son
+    Actividad, descripción, periodo, asignatura, se debe permitir crear, modificar tanto el adminstrador como el docente
+    En el modulo de carga de notas al pasar el mouse por la celda de tc_1, tc_2, tc_3, tc_4, th_1, th_2, th_3, th_4 se debe mostrar un tooltips con las descripción de la actividad parametrizada
+
+Modulo de Observador del alumno
+    Se debe crear un modulo para gestionar el observador del alumno, este modulo contendrá los siguientes campos:
+    •	Periodo (primer periodo, segundo periodo, tercer periodo, cuarto periodo)
+    •	Fortaleza: descripción de su fortaleza
+    •	Debilidad: descripción de su debilidad
+    •	Estrategia: descripción de la estrategia implementada
+    •	Observaciones: observaciones del docente
+    Este modulo es gestionado por el docente o administrador y debe permitir la creación y edición de la información
+    Debe tener filtros por: curso . periodo, estudiante
+
+
 
 •	Funcionalidades de la app
     1.	Realizar el backen en supabase

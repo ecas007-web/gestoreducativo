@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../config.jsx';
 import { mostrarToast } from '../../utils.jsx';
+import { useNavigationGuard } from '../../context/NavigationContext.jsx';
 
 export const TeacherGrades = () => {
     const { cursoId } = useParams();
@@ -13,7 +14,7 @@ export const TeacherGrades = () => {
     const [periodo, setPeriodo] = useState('P1');
     const [query, setQuery] = useState('');
     const [showDropdown, setShowDropdown] = useState(false);
-    const [notas, setNotas] = useState([]);
+    const [notas, setNotas] = useState([]); // Mantener para compatibilidad si se usa
     const [activeYear, setActiveYear] = useState(null);
     const [scales, setScales] = useState([]);
     const [achievement, setAchievement] = useState(null);
@@ -21,7 +22,139 @@ export const TeacherGrades = () => {
     const [loading, setLoading] = useState(true);
 
     const [localNotas, setLocalNotas] = useState({});
+    const [originalNotas, setOriginalNotas] = useState({});
     const [savingBulk, setSavingBulk] = useState(false);
+    const { setIsDirty, setSaveHandler, attemptNavigation } = useNavigationGuard();
+
+    const hasChanges = JSON.stringify(localNotas) !== JSON.stringify(originalNotas);
+
+    const filteredStudents = useMemo(() => {
+        const queryLower = query.toLowerCase();
+        return students.filter(s => {
+            const name1 = `${s.apellidos} ${s.nombres}`.toLowerCase();
+            const name2 = `${s.nombres} ${s.apellidos}`.toLowerCase();
+            return name1.includes(queryLower) || name2.includes(queryLower);
+        });
+    }, [students, query]);
+
+    const calculateValues = (row) => {
+        const tcKeys = ['tc1', 'tc2', 'tc3', 'tc4'];
+        const thKeys = ['th1', 'th2', 'th3', 'th4'];
+        const tcVals = tcKeys.map(k => row[k]).filter(v => v !== '' && v !== null && v !== undefined);
+        const thVals = thKeys.map(k => row[k]).filter(v => v !== '' && v !== null && v !== undefined);
+        const tcAvgVal = tcVals.length > 0 ? tcVals.reduce((acc, v) => acc + parseFloat(v), 0) / tcVals.length : 0;
+        const thAvgVal = thVals.length > 0 ? thVals.reduce((acc, v) => acc + parseFloat(v), 0) / thVals.length : 0;
+        const allKeys = [...tcKeys, ...thKeys, 'cuaderno', 'examen'];
+        const allSet = allKeys.every(k => row[k] !== '' && row[k] !== null && row[k] !== undefined);
+        if (!allSet) return { final: null, escala: '', logro: '' };
+        const cuad = parseFloat(row.cuaderno);
+        const exam = parseFloat(row.examen);
+        const final = (tcAvgVal * 0.3) + (thAvgVal * 0.3) + (cuad * 0.1) + (exam * 0.3);
+        const finalFixed = parseFloat(final.toFixed(1));
+        const scaleMatch = scales.find(s => finalFixed >= s.rango_minimo && finalFixed <= s.rango_maximo);
+        const escalaTexto = scaleMatch ? scaleMatch.escala : '';
+        const achievementText = scaleMatch && achievement ? `${scaleMatch.verbo} ${achievement}` : '';
+        return { final: finalFixed, escala: escalaTexto, logro: achievementText };
+    };
+
+    const loadGrades = async () => {
+        if (!activeYear) return;
+        const [gRes, aRes, actRes] = await Promise.all([
+            supabase.from('calificaciones')
+                .select('*')
+                .match({ materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id }),
+            supabase.from('logros_generales')
+                .select('logro')
+                .match({ curso_id: cursoId, materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id })
+                .maybeSingle(),
+            supabase.from('actividades')
+                .select('actividad, descripcion')
+                .match({ curso_id: cursoId, materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id })
+        ]);
+
+        const gradesMap = {};
+        (gRes.data || []).forEach(n => {
+            gradesMap[n.estudiante_id] = n;
+        });
+        setLocalNotas(gradesMap);
+        setOriginalNotas(JSON.parse(JSON.stringify(gradesMap)));
+        setAchievement(aRes.data?.logro || null);
+        setActivities(actRes.data || []);
+    };
+
+    const saveGrade = async (estId, data, silent = false) => {
+        if (!activeYear) return mostrarToast('No hay año académico activo', 'error');
+        try {
+            const { data: existe } = await supabase.from('calificaciones').select('id')
+                .match({ estudiante_id: estId, materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id })
+                .maybeSingle();
+            const calc = calculateValues(data);
+            const payload = {
+                estudiante_id: estId, materia_id: selectedMateria, curso_id: cursoId, periodo, anio_academico_id: activeYear.id,
+                tc1: data.tc1 || 0, tc2: data.tc2 || 0, tc3: data.tc3 || 0, tc4: data.tc4 || 0,
+                th1: data.th1 || 0, th2: data.th2 || 0, th3: data.th3 || 0, th4: data.th4 || 0,
+                cuaderno: data.cuaderno || 0, examen: data.examen || 0,
+                nota: calc.final || 0, nota_final: calc.final,
+                escala_valorativa: calc.escala, logro_calculado: calc.logro,
+                updated_at: new Date()
+            };
+            if (existe) await supabase.from('calificaciones').update(payload).eq('id', existe.id);
+            else await supabase.from('calificaciones').insert([payload]);
+            if (!silent) mostrarToast('Registro actualizado', 'success');
+        } catch (err) {
+            if (!silent) mostrarToast(err.message, 'error');
+            throw err;
+        }
+    };
+
+    const handleSaveAll = useCallback(async () => {
+        setSavingBulk(true);
+        let successCount = 0;
+        let errorCount = 0;
+        try {
+            for (const student of filteredStudents) {
+                const data = localNotas[student.id];
+                if (data) {
+                    try {
+                        await saveGrade(student.id, data, true);
+                        successCount++;
+                    } catch (e) {
+                        errorCount++;
+                    }
+                }
+            }
+            mostrarToast(`Proceso completado: ${successCount} guardados, ${errorCount} errores`, successCount > 0 ? 'success' : 'error');
+            await loadGrades();
+        } catch (err) {
+            mostrarToast('Error en el proceso masivo', 'error');
+        } finally {
+            setSavingBulk(false);
+        }
+    }, [filteredStudents, localNotas, selectedMateria, periodo, activeYear, cursoId]);
+
+    // Sync dirty state with global guard
+    useEffect(() => {
+        setIsDirty(hasChanges);
+        return () => setIsDirty(false);
+    }, [hasChanges, setIsDirty]);
+
+    // Register save handler for navigation guard
+    useEffect(() => {
+        setSaveHandler(() => handleSaveAll);
+        return () => setSaveHandler(null);
+    }, [handleSaveAll, setSaveHandler]);
+
+    // Prevent tab close/reload
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            if (hasChanges) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [hasChanges]);
 
     useEffect(() => {
         loadData();
@@ -53,136 +186,20 @@ export const TeacherGrades = () => {
         if (selectedMateria) loadGrades();
     }, [selectedMateria, periodo]);
 
-    const loadGrades = async () => {
-        if (!activeYear) return;
-        const [gRes, aRes, actRes] = await Promise.all([
-            supabase.from('calificaciones')
-                .select('*')
-                .match({ materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id }),
-            supabase.from('logros_generales')
-                .select('logro')
-                .match({ curso_id: cursoId, materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id })
-                .maybeSingle(),
-            supabase.from('actividades')
-                .select('actividad, descripcion')
-                .match({ curso_id: cursoId, materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id })
-        ]);
-
-        const gradesMap = {};
-        (gRes.data || []).forEach(n => {
-            gradesMap[n.estudiante_id] = n;
-        });
-        setLocalNotas(gradesMap);
-        setAchievement(aRes.data?.logro || null);
-        setActivities(actRes.data || []);
-    };
-
-    const calculateValues = (row) => {
-        const tcKeys = ['tc1', 'tc2', 'tc3', 'tc4'];
-        const thKeys = ['th1', 'th2', 'th3', 'th4'];
-
-        const tcVals = tcKeys.map(k => row[k]).filter(v => v !== '' && v !== null && v !== undefined);
-        const thVals = thKeys.map(k => row[k]).filter(v => v !== '' && v !== null && v !== undefined);
-
-        const tcAvgVal = tcVals.length > 0 ? tcVals.reduce((acc, v) => acc + parseFloat(v), 0) / tcVals.length : 0;
-        const thAvgVal = thVals.length > 0 ? thVals.reduce((acc, v) => acc + parseFloat(v), 0) / thVals.length : 0;
-
-        const allKeys = [...tcKeys, ...thKeys, 'cuaderno', 'examen'];
-        const allSet = allKeys.every(k => row[k] !== '' && row[k] !== null && row[k] !== undefined);
-
-        if (!allSet) return { final: null, escala: '', logro: '' };
-
-        const cuad = parseFloat(row.cuaderno);
-        const exam = parseFloat(row.examen);
-
-        const final = (tcAvgVal * 0.3) + (thAvgVal * 0.3) + (cuad * 0.1) + (exam * 0.3);
-        const finalFixed = parseFloat(final.toFixed(1));
-
-        const scaleMatch = scales.find(s => finalFixed >= s.rango_minimo && finalFixed <= s.rango_maximo);
-        const escalaTexto = scaleMatch ? scaleMatch.escala : '';
-        const achievementText = scaleMatch && achievement ? `${scaleMatch.verbo} ${achievement}` : '';
-
-        return {
-            final: finalFixed,
-            escala: escalaTexto,
-            logro: achievementText
-        };
-    };
-
-    const saveGrade = async (estId, data, silent = false) => {
-        if (!activeYear) return mostrarToast('No hay año académico activo', 'error');
-
-        try {
-            const { data: existe } = await supabase.from('calificaciones').select('id')
-                .match({ estudiante_id: estId, materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id })
-                .maybeSingle();
-
-            const calc = calculateValues(data);
-
-            const payload = {
-                estudiante_id: estId,
-                materia_id: selectedMateria,
-                curso_id: cursoId,
-                periodo,
-                anio_academico_id: activeYear.id,
-                tc1: data.tc1 || 0, tc2: data.tc2 || 0, tc3: data.tc3 || 0, tc4: data.tc4 || 0,
-                th1: data.th1 || 0, th2: data.th2 || 0, th3: data.th3 || 0, th4: data.th4 || 0,
-                cuaderno: data.cuaderno || 0, examen: data.examen || 0,
-                nota: calc.final || 0,
-                nota_final: calc.final,
-                escala_valorativa: calc.escala,
-                logro_calculado: calc.logro,
-                updated_at: new Date()
-            };
-
-            if (existe) await supabase.from('calificaciones').update(payload).eq('id', existe.id);
-            else await supabase.from('calificaciones').insert([payload]);
-
-            if (!silent) {
-                mostrarToast('Registro actualizado', 'success');
-                // Don't reload everything for a single save, just update that local record if needed
-                // but for simplicity we keep it or update local state
-            }
-        } catch (err) {
-            if (!silent) mostrarToast(err.message, 'error');
-            throw err;
+    const handleFilterChange = (type, value) => {
+        if (hasChanges) {
+            attemptNavigation(() => {
+                if (type === 'materia') setSelectedMateria(value);
+                if (type === 'periodo') setPeriodo(value);
+            });
+        } else {
+            if (type === 'materia') setSelectedMateria(value);
+            if (type === 'periodo') setPeriodo(value);
         }
     };
 
-    const handleSaveAll = async () => {
-        setSavingBulk(true);
-        let successCount = 0;
-        let errorCount = 0;
 
-        try {
-            // Only save filtered ones or all in current view? 
-            // Usually "Save All" means "Everything currently visible/loaded for this filter"
-            for (const student of filteredStudents) {
-                const data = localNotas[student.id];
-                if (data) {
-                    try {
-                        await saveGrade(student.id, data, true);
-                        successCount++;
-                    } catch (e) {
-                        errorCount++;
-                    }
-                }
-            }
-            mostrarToast(`Proceso completado: ${successCount} guardados, ${errorCount} errores`, successCount > 0 ? 'success' : 'error');
-            loadGrades(); // Reload to sync with DB
-        } catch (err) {
-            mostrarToast('Error en el proceso masivo', 'error');
-        } finally {
-            setSavingBulk(false);
-        }
-    };
 
-    const filteredStudents = students.filter(s => {
-        const queryLower = query.toLowerCase();
-        const name1 = `${s.apellidos} ${s.nombres}`.toLowerCase();
-        const name2 = `${s.nombres} ${s.apellidos}`.toLowerCase();
-        return name1.includes(queryLower) || name2.includes(queryLower);
-    });
 
     return (
         <div className="space-y-6">
@@ -199,14 +216,14 @@ export const TeacherGrades = () => {
             <div className="card grid grid-cols-1 md:grid-cols-4 gap-6 w-full">
                 <div className="form-group">
                     <label className="form-label">Asignatura</label>
-                    <select className="form-input" value={selectedMateria} onChange={e => setSelectedMateria(e.target.value)}>
+                    <select className="form-input" value={selectedMateria} onChange={e => handleFilterChange('materia', e.target.value)}>
                         <option value="">Seleccionar Materia...</option>
                         {subjects.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
                     </select>
                 </div>
                 <div className="form-group">
                     <label className="form-label">Periodo Académico</label>
-                    <select className="form-input" value={periodo} onChange={e => setPeriodo(e.target.value)}>
+                    <select className="form-input" value={periodo} onChange={e => handleFilterChange('periodo', e.target.value)}>
                         <option value="P1">Primer Periodo</option>
                         <option value="P2">Segundo Periodo</option>
                         <option value="P3">Tercer Periodo</option>
@@ -228,8 +245,8 @@ export const TeacherGrades = () => {
                         {selectedMateria && filteredStudents.length > 0 && (
                             <button
                                 onClick={handleSaveAll}
-                                disabled={savingBulk}
-                                className="btn btn-primary h-12 px-6 flex items-center gap-2 shadow-lg shadow-blue-200"
+                                disabled={savingBulk || !hasChanges}
+                                className={`btn h-12 px-6 flex items-center gap-2 shadow-lg transition-all ${!hasChanges ? 'bg-slate-100 text-slate-400 border-slate-200' : 'btn-primary shadow-blue-200 animate-fadeIn'}`}
                             >
                                 <span className={`material-symbols-outlined ${savingBulk ? 'animate-spin' : ''}`}>
                                     {savingBulk ? 'sync' : 'done_all'}
@@ -245,7 +262,6 @@ export const TeacherGrades = () => {
                                     key={s.id}
                                     className="px-4 py-2.5 hover:bg-blue-50 cursor-pointer text-slate-900 text-2xl transition-colors border-b border-slate-100 last:border-0"
                                     onMouseDown={(e) => {
-                                        // Use onMouseDown instead of onClick to prevent blur from firing before selection
                                         e.preventDefault();
                                         setQuery(`${s.apellidos} ${s.nombres}`);
                                         setShowDropdown(false);
@@ -276,15 +292,15 @@ export const TeacherGrades = () => {
                             </tr>
                             <tr className="text-[10px] uppercase tracking-tighter text-slate-400">
                                 <th className="sticky left-0 bg-slate-50 z-10 border-r"></th>
-                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver descripción">TC_1 <span className="text-[8px] text-blue-300">ⓘ</span></th>
-                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver descripción">TC_2 <span className="text-[8px] text-blue-300">ⓘ</span></th>
-                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver descripción">TC_3 <span className="text-[8px] text-blue-300">ⓘ</span></th>
-                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver descripción">TC_4 <span className="text-[8px] text-blue-300">ⓘ</span></th>
+                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver la actividad correspondiente">TC_1 <span className="text-[8px] text-blue-300">ⓘ</span></th>
+                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver la actividad correspondiente">TC_2 <span className="text-[8px] text-blue-300">ⓘ</span></th>
+                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver la actividad correspondiente">TC_3 <span className="text-[8px] text-blue-300">ⓘ</span></th>
+                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver la actividad correspondiente">TC_4 <span className="text-[8px] text-blue-300">ⓘ</span></th>
                                 <th className="border-r w-20 p-1 text-center bg-blue-100/50 text-blue-700 font-bold">Prom</th>
-                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver descripción">TH_1 <span className="text-[8px] text-emerald-300">ⓘ</span></th>
-                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver descripción">TH_2 <span className="text-[8px] text-emerald-300">ⓘ</span></th>
-                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver descripción">TH_3 <span className="text-[8px] text-emerald-300">ⓘ</span></th>
-                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver descripción">TH_4 <span className="text-[8px] text-emerald-300">ⓘ</span></th>
+                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver la actividad correspondiente">TH_1 <span className="text-[8px] text-emerald-300">ⓘ</span></th>
+                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver la actividad correspondiente">TH_2 <span className="text-[8px] text-emerald-300">ⓘ</span></th>
+                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver la actividad correspondiente">TH_3 <span className="text-[8px] text-emerald-300">ⓘ</span></th>
+                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver la actividad correspondiente">TH_4 <span className="text-[8px] text-emerald-300">ⓘ</span></th>
                                 <th className="border-r w-20 p-1 text-center bg-emerald-100/50 text-emerald-700 font-bold">Prom</th>
                                 <th className="border-r w-24 p-1 text-center">Cuaderno</th>
                                 <th className="border-r w-24 p-1 text-center">Examen</th>
@@ -321,6 +337,7 @@ export const TeacherGrades = () => {
         </div>
     );
 };
+
 
 const GradeRow = ({ student, data, scales, globalAchievement, onChange, onSave, activities }) => {
     const defaultData = {
