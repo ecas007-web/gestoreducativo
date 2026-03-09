@@ -18,6 +18,7 @@ import { AcademicYearsManager } from './components/Admin/AcademicYears.jsx';
 import { ScaleSettings } from './components/Admin/ScaleSettings.jsx';
 import { AchievementSettings } from './components/Admin/AchievementSettings.jsx';
 import { BehaviorManagement } from './components/Admin/BehaviorManagement.jsx';
+import { ActivitiesManager } from './components/Admin/ActivitiesManager.jsx';
 
 // Teacher Components
 import { TeacherDashboard } from './components/Teacher/Dashboard.jsx';
@@ -69,6 +70,7 @@ const App = () => {
                 { path: '/admin/escalas', icon: 'grade', label: 'Escala Valorativa' },
                 { path: '/admin/logros', icon: 'emoji_events', label: 'Logros Generales' },
                 { path: '/admin/comportamiento', icon: 'psychology', label: 'Comportamiento' },
+                { path: '/admin/actividades', icon: 'list_alt', label: 'Actividades' },
                 { path: '/admin/cursos', icon: 'room_preferences', label: 'Cursos' },
                 { path: '/admin/materias', icon: 'menu_book', label: 'Materias' }
             ]
@@ -97,6 +99,7 @@ const App = () => {
                 { path: '/docente/dashboard', icon: 'dashboard', label: 'Inicio' },
                 { path: '/docente/logros', icon: 'emoji_events', label: 'Logros Generales' },
                 { path: '/docente/comportamiento', icon: 'psychology', label: 'Comportamiento' },
+                { path: '/docente/actividades', icon: 'list_alt', label: 'Actividades' },
                 { path: '/docente/perfil', icon: 'person', label: 'Mi Perfil' }
             ]
         }
@@ -133,6 +136,7 @@ const App = () => {
                                     <Route path="cursos" element={<CoursesManager />} />
                                     <Route path="materias" element={<SubjectsManager />} />
                                     <Route path="pagos" element={<PaymentsManager />} />
+                                    <Route path="actividades" element={<ActivitiesManager />} />
                                     <Route path="descuentos" element={<DiscountsManager />} />
                                     <Route path="boletines" element={<ReportsManager />} />
                                     <Route path="*" element={<Navigate to="dashboard" replace />} />
@@ -150,6 +154,7 @@ const App = () => {
                                     <Route path="logros" element={<AchievementSettings />} />
                                     <Route path="comportamiento" element={<BehaviorManagement />} />
                                     <Route path="calificaciones/:cursoId" element={<TeacherGrades />} />
+                                    <Route path="actividades" element={<ActivitiesManager />} />
                                     <Route path="perfil" element={<TeacherProfile />} />
                                     <Route path="*" element={<Navigate to="dashboard" replace />} />
                                 </Routes>

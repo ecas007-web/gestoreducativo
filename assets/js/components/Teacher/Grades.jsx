@@ -17,6 +17,7 @@ export const TeacherGrades = () => {
     const [activeYear, setActiveYear] = useState(null);
     const [scales, setScales] = useState([]);
     const [achievement, setAchievement] = useState(null);
+    const [activities, setActivities] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const [localNotas, setLocalNotas] = useState({});
@@ -54,14 +55,17 @@ export const TeacherGrades = () => {
 
     const loadGrades = async () => {
         if (!activeYear) return;
-        const [gRes, aRes] = await Promise.all([
+        const [gRes, aRes, actRes] = await Promise.all([
             supabase.from('calificaciones')
                 .select('*')
                 .match({ materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id }),
             supabase.from('logros_generales')
                 .select('logro')
                 .match({ curso_id: cursoId, materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id })
-                .maybeSingle()
+                .maybeSingle(),
+            supabase.from('actividades')
+                .select('actividad, descripcion')
+                .match({ curso_id: cursoId, materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id })
         ]);
 
         const gradesMap = {};
@@ -70,6 +74,7 @@ export const TeacherGrades = () => {
         });
         setLocalNotas(gradesMap);
         setAchievement(aRes.data?.logro || null);
+        setActivities(actRes.data || []);
     };
 
     const calculateValues = (row) => {
@@ -271,15 +276,15 @@ export const TeacherGrades = () => {
                             </tr>
                             <tr className="text-[10px] uppercase tracking-tighter text-slate-400">
                                 <th className="sticky left-0 bg-slate-50 z-10 border-r"></th>
-                                <th className="border-r w-20 p-1 text-center">TC_1</th>
-                                <th className="border-r w-20 p-1 text-center">TC_2</th>
-                                <th className="border-r w-20 p-1 text-center">TC_3</th>
-                                <th className="border-r w-20 p-1 text-center">TC_4</th>
+                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver descripción">TC_1 <span className="text-[8px] text-blue-300">ⓘ</span></th>
+                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver descripción">TC_2 <span className="text-[8px] text-blue-300">ⓘ</span></th>
+                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver descripción">TC_3 <span className="text-[8px] text-blue-300">ⓘ</span></th>
+                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver descripción">TC_4 <span className="text-[8px] text-blue-300">ⓘ</span></th>
                                 <th className="border-r w-20 p-1 text-center bg-blue-100/50 text-blue-700 font-bold">Prom</th>
-                                <th className="border-r w-20 p-1 text-center">TH_1</th>
-                                <th className="border-r w-20 p-1 text-center">TH_2</th>
-                                <th className="border-r w-20 p-1 text-center">TH_3</th>
-                                <th className="border-r w-20 p-1 text-center">TH_4</th>
+                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver descripción">TH_1 <span className="text-[8px] text-emerald-300">ⓘ</span></th>
+                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver descripción">TH_2 <span className="text-[8px] text-emerald-300">ⓘ</span></th>
+                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver descripción">TH_3 <span className="text-[8px] text-emerald-300">ⓘ</span></th>
+                                <th className="border-r w-20 p-1 text-center" title="Pasar el mouse por las notas para ver descripción">TH_4 <span className="text-[8px] text-emerald-300">ⓘ</span></th>
                                 <th className="border-r w-20 p-1 text-center bg-emerald-100/50 text-emerald-700 font-bold">Prom</th>
                                 <th className="border-r w-24 p-1 text-center">Cuaderno</th>
                                 <th className="border-r w-24 p-1 text-center">Examen</th>
@@ -304,6 +309,7 @@ export const TeacherGrades = () => {
                                         }));
                                     }}
                                     onSave={() => saveGrade(s.id, localNotas[s.id])}
+                                    activities={activities}
                                 />
                             )) : (
                                 <tr><td colSpan="16" className="text-center py-20 text-slate-400 font-medium">Selecciona una materia para cargar el listado.</td></tr>
@@ -316,7 +322,7 @@ export const TeacherGrades = () => {
     );
 };
 
-const GradeRow = ({ student, data, scales, globalAchievement, onChange, onSave }) => {
+const GradeRow = ({ student, data, scales, globalAchievement, onChange, onSave, activities }) => {
     const defaultData = {
         tc1: '', tc2: '', tc3: '', tc4: '',
         th1: '', th2: '', th3: '', th4: '',
@@ -371,6 +377,10 @@ const GradeRow = ({ student, data, scales, globalAchievement, onChange, onSave }
         onChange({ [field]: val });
     };
 
+    const getActDesc = (actCode) => {
+        return activities.find(a => a.actividad === actCode)?.descripcion || '';
+    };
+
     return (
         <tr className="hover:bg-slate-50 transition-colors group">
             <td className="sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r py-4 shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
@@ -381,17 +391,17 @@ const GradeRow = ({ student, data, scales, globalAchievement, onChange, onSave }
             </td>
 
             {/* Tareas Clase */}
-            <GradeCell value={row.tc1} onChange={v => handleInput('tc1', v)} className="bg-blue-50/10" />
-            <GradeCell value={row.tc2} onChange={v => handleInput('tc2', v)} className="bg-blue-50/10" />
-            <GradeCell value={row.tc3} onChange={v => handleInput('tc3', v)} className="bg-blue-50/10" />
-            <GradeCell value={row.tc4} onChange={v => handleInput('tc4', v)} className="bg-blue-50/10" />
+            <GradeCell value={row.tc1} onChange={v => handleInput('tc1', v)} className="bg-blue-50/10" title={getActDesc('TC1')} />
+            <GradeCell value={row.tc2} onChange={v => handleInput('tc2', v)} className="bg-blue-50/10" title={getActDesc('TC2')} />
+            <GradeCell value={row.tc3} onChange={v => handleInput('tc3', v)} className="bg-blue-50/10" title={getActDesc('TC3')} />
+            <GradeCell value={row.tc4} onChange={v => handleInput('tc4', v)} className="bg-blue-50/10" title={getActDesc('TC4')} />
             <td className="text-center bg-blue-100/30 font-black text-slate-900 border-r">{calc.tcAvg}</td>
 
             {/* Tareas Casa */}
-            <GradeCell value={row.th1} onChange={v => handleInput('th1', v)} className="bg-emerald-50/10" />
-            <GradeCell value={row.th2} onChange={v => handleInput('th2', v)} className="bg-emerald-50/10" />
-            <GradeCell value={row.th3} onChange={v => handleInput('th3', v)} className="bg-emerald-50/10" />
-            <GradeCell value={row.th4} onChange={v => handleInput('th4', v)} className="bg-emerald-50/10" />
+            <GradeCell value={row.th1} onChange={v => handleInput('th1', v)} className="bg-emerald-50/10" title={getActDesc('TH1')} />
+            <GradeCell value={row.th2} onChange={v => handleInput('th2', v)} className="bg-emerald-50/10" title={getActDesc('TH2')} />
+            <GradeCell value={row.th3} onChange={v => handleInput('th3', v)} className="bg-emerald-50/10" title={getActDesc('TH3')} />
+            <GradeCell value={row.th4} onChange={v => handleInput('th4', v)} className="bg-emerald-50/10" title={getActDesc('TH4')} />
             <td className="text-center bg-slate-100 font-black text-slate-900 border-r">{calc.thAvg}</td>
 
             {/* Cuaderno y Examen */}
@@ -431,14 +441,20 @@ const GradeRow = ({ student, data, scales, globalAchievement, onChange, onSave }
     );
 };
 
-const GradeCell = ({ value, onChange, className = '' }) => (
-    <td className={`p-1 border-r ${className}`}>
+const GradeCell = ({ value, onChange, className = '', title = '' }) => (
+    <td className={`p-0 border-r relative ${className}`} title={title}>
         <input
             type="number" step="0.1"
             className="w-full h-10 text-center bg-transparent border-none focus:ring-2 focus:ring-blue-400 rounded-lg font-bold text-slate-700 p-0"
             value={value || ''}
             onChange={e => onChange(e.target.value)}
             placeholder="-"
+            title={title}
         />
+        {title && (
+            <div className="absolute top-0 right-1 pointer-events-none">
+                <span className="text-[8px] text-blue-400 font-black">ⓘ</span>
+            </div>
+        )}
     </td>
 );
