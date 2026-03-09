@@ -9,24 +9,39 @@ export const TeacherDashboard = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (profile?.correo) loadAssigned();
+        if (profile?.assignedCourses) {
+            setAssignedCourses(profile.assignedCourses);
+            setLoading(false);
+        } else if (profile?.id) {
+            loadAssigned();
+        }
     }, [profile]);
 
     const loadAssigned = async () => {
+        if (!profile?.id) return;
         setLoading(true);
         try {
-            // Primero buscar el ID del docente por correo
-            const { data: doc } = await supabase.from('docentes').select('id').eq('correo', profile.correo).single();
-            if (doc) {
-                const { data: asig } = await supabase
-                    .from('docente_cursos')
-                    .select('curso_id, cursos(id, nombre, descripcion)')
-                    .eq('docente_id', doc.id);
+            const { data, error } = await supabase
+                .from('docentes')
+                .select(`
+                    id,
+                    docente_cursos (
+                        cursos (*)
+                    )
+                `)
+                .eq('user_id', profile.id)
+                .maybeSingle();
 
-                setAssignedCourses(asig?.map(a => a.cursos) || []);
+            if (error) throw error;
+
+            if (data) {
+                const courses = data.docente_cursos
+                    ?.map(dc => dc.cursos)
+                    .filter(Boolean) || [];
+                setAssignedCourses(courses);
             }
         } catch (err) {
-            console.error(err);
+            console.error("Error al cargar cursos:", err);
         } finally {
             setLoading(false);
         }

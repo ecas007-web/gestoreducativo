@@ -41,15 +41,17 @@ export const BehaviorManagement = () => {
                 const { data: cData } = await supabase.from('cursos').select('*').order('nombre');
                 setCourses(cData || []);
             } else {
-                // Primero buscar el ID del docente por correo o user_id
-                const { data: doc } = await supabase.from('docentes').select('id').eq('user_id', profile.id).single();
-
-                if (doc) {
-                    const { data: assigned } = await supabase
-                        .from('docente_cursos')
-                        .select('curso_id, cursos(id, nombre)')
-                        .eq('docente_id', doc.id);
-                    setCourses(assigned?.map(a => a.cursos) || []);
+                if (profile.assignedCourses) {
+                    setCourses(profile.assignedCourses);
+                } else {
+                    const { data: doc } = await supabase.from('docentes').select('id').eq('user_id', profile.id).single();
+                    if (doc) {
+                        const { data: assigned } = await supabase
+                            .from('docente_cursos')
+                            .select('curso_id, cursos(id, nombre)')
+                            .eq('docente_id', doc.id);
+                        setCourses(assigned?.map(a => a.cursos) || []);
+                    }
                 }
             }
         } catch (error) {

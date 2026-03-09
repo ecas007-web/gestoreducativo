@@ -57,13 +57,18 @@ export const StudentObserver = () => {
                 const { data } = await supabase.from('cursos').select('*').order('nombre');
                 setCourses(data || []);
             } else if (profile?.rol === 'docente') {
-                // Find the teacher record
-                const { data: teacher } = await supabase.from('docentes').select('id').eq('user_id', profile.id).single();
-                if (teacher) {
-                    const { data: asig } = await supabase.from('docente_cursos')
-                        .select('cursos(*)')
-                        .eq('docente_id', teacher.id);
-                    setCourses(asig?.map(a => a.cursos).filter(Boolean) || []);
+                // Priorizar el uso de cursos pre-cargados en el perfil (AuthContext)
+                if (profile.assignedCourses) {
+                    setCourses(profile.assignedCourses);
+                } else {
+                    // Fallback en caso de que aún no estén cargados o haya un error en la pre-carga
+                    const { data: teacher } = await supabase.from('docentes').select('id').eq('user_id', profile.id).single();
+                    if (teacher) {
+                        const { data: asig } = await supabase.from('docente_cursos')
+                            .select('cursos(*)')
+                            .eq('docente_id', teacher.id);
+                        setCourses(asig?.map(a => a.cursos).filter(Boolean) || []);
+                    }
                 }
             }
         } catch (err) {

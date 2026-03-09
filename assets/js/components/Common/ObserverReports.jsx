@@ -13,12 +13,11 @@ export const ObserverReports = () => {
     const [students, setStudents] = useState([]);
     const [selectedCourse, setSelectedCourse] = useState('');
     const [selectedStudent, setSelectedStudent] = useState('');
-    const [periodo, setPeriodo] = useState('');
     const [loading, setLoading] = useState(false);
     const [generating, setGenerating] = useState(false);
     const [activeYear, setActiveYear] = useState(null);
-    const [observations, setObservations] = useState([]);
-    const [previewData, setPreviewData] = useState(null);
+    const [observations, setObservations] = useState([]); // Students with their history
+    const [previewData, setPreviewData] = useState(null); // Selected student data for preview
 
     useEffect(() => {
         loadInitialData();
@@ -34,10 +33,13 @@ export const ObserverReports = () => {
     }, [selectedCourse]);
 
     useEffect(() => {
-        if (selectedCourse && periodo) {
+        if (selectedCourse) {
             loadObservations();
+        } else {
+            setObservations([]);
+            setPreviewData(null);
         }
-    }, [selectedCourse, periodo, selectedStudent]);
+    }, [selectedCourse, selectedStudent, activeYear]);
 
     const loadInitialData = async () => {
         if (!profile) return;
@@ -49,10 +51,19 @@ export const ObserverReports = () => {
                 const { data } = await supabase.from('cursos').select('*').order('nombre');
                 setCourses(data || []);
             } else {
-                const { data: teacher } = await supabase.from('docentes').select('id').eq('user_id', profile.id).single();
-                if (teacher) {
-                    const { data: asig } = await supabase.from('docente_cursos').select('cursos(*)').eq('docente_id', teacher.id);
-                    setCourses(asig?.map(a => a.cursos).filter(Boolean) || []);
+                if (profile.assignedCourses) {
+                    setCourses(profile.assignedCourses);
+                } else {
+                    const { data: teacherData } = await supabase
+                        .from('docentes')
+                        .select('docente_cursos(cursos(*))')
+                        .eq('user_id', profile.id)
+                        .maybeSingle();
+
+                    if (teacherData) {
+                        const teacherCourses = teacherData.docente_cursos?.map(dc => dc.cursos).filter(Boolean) || [];
+                        setCourses(teacherCourses);
+                    }
                 }
             }
         } catch (err) {
@@ -66,456 +77,283 @@ export const ObserverReports = () => {
     };
 
     const loadObservations = async () => {
+        if (!activeYear || !selectedCourse) {
+            setObservations([]);
+            setPreviewData(null);
+            return;
+        }
         setLoading(true);
         try {
-            // Using aliases to ensure predictable property names
-            let query = supabase.from('estudiante_observador')
-                .select('*, estudiante:estudiantes(*, curso:cursos(*))')
-                .eq('anio_academico_id', activeYear.id)
-                .eq('periodo', periodo);
+            let query = supabase.from('estudiantes')
+                .select('*, curso:cursos(*), historial:estudiante_observador(*)')
+                .order('apellidos');
 
-            if (selectedStudent) {
-                query = query.eq('estudiante_id', selectedStudent);
-            } else if (students.length > 0) {
-                query = query.in('estudiante_id', students.map(s => s.id));
-            }
+            if (selectedCourse) query = query.eq('curso_id', selectedCourse);
+            if (selectedStudent) query = query.eq('id', selectedStudent);
 
             const { data, error } = await query;
             if (error) throw error;
 
-            setObservations(data || []);
+            const formattedData = (data || []).map(student => ({
+                id: student.id,
+                estudiante: student,
+                historial: (student.historial || [])
+                    .filter(h => h.anio_academico_id === activeYear?.id)
+                    .sort((a, b) => a.periodo.localeCompare(b.periodo))
+            }));
 
-            if (selectedStudent) {
-                setPreviewData(data?.find(o => o.estudiante_id === selectedStudent));
+            setObservations(formattedData);
+            if (selectedStudent && formattedData.length > 0) {
+                setPreviewData(formattedData[0]);
             } else {
                 setPreviewData(null);
             }
         } catch (err) {
             console.error(err);
-            mostrarToast("Error al cargar observaciones: " + err.message, "error");
+            mostrarToast('Error al cargar datos', 'error');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleGenerateSingle = async (obs) => {
-        if (!obs) return;
+    const periodNames = {
+        'P1': 'Primer Periodo',
+        'P2': 'Segundo Periodo',
+        'P3': 'Tercer Periodo',
+        'P4': 'Cuarto Periodo'
+    };
+
+    const getFullMappedData = (studentData) => {
+        const student = studentData.estudiante;
+        const curso = student.curso;
+        const fechaActualLong = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+        return {
+            'nombres': (student.nombres || '').toUpperCase(),
+            'apellidos': (student.apellidos || '').toUpperCase(),
+            'apellidos y nombres': `${student.apellidos || ''} ${student.nombres || ''}`.toUpperCase(),
+            'numero_documento': student.numero_documento || '',
+            'tipo_documento': student.tipo_documento || '',
+            'curso': (curso?.nombre || '').toUpperCase(),
+            'grado': (curso?.nombre || '').toUpperCase(),
+            'anio': activeYear?.anio || '',
+            'año': activeYear?.anio || '',
+            'fecha actual': fechaActualLong,
+            'fecha': new Date().toLocaleDateString(),
+            // Otros datos
+            'fecha_nac': student.fecha_nac || '',
+            'lugar_nacimiento': student.lugar_nacimiento || '',
+            'direccion': student.direccion || '',
+            'correo': student.correo || '',
+            'telefono': student.telefono || '',
+            'celular': student.celular || '',
+            'eps': student.eps || '',
+            'tipo_sangre': student.tipo_sangre || '',
+            // Familiares
+            'nombre_padre': (student.nombre_padre || '').toUpperCase(),
+            'documento_padre': student.documento_padre || '',
+            'ocupacion_padre': student.ocupacion_padre || '',
+            'telefono_padre': student.telefono_padre || '',
+            'nombre_madre': (student.nombre_madre || '').toUpperCase(),
+            'documento_madre': student.documento_madre || '',
+            'ocupacion_madre': student.ocupacion_madre || '',
+            'telefono_madre': student.telefono_madre || '',
+            // Bucle de periodos
+            'observadores': studentData.historial.map(h => ({
+                periodo: periodNames[h.periodo] || h.periodo,
+                fortalezas: h.fortalezas || '',
+                debilidades: h.debilidades || '',
+                estrategias: h.estrategias || '',
+                observaciones: h.observaciones || ''
+            }))
+        };
+    };
+
+    const handleGenerateSingle = async (studentData) => {
+        if (!studentData?.historial?.length) {
+            mostrarToast('No hay historial para este estudiante.', 'warning');
+            return;
+        }
         setGenerating(true);
         try {
-            const response = await fetch('/plantillas/plantilla_observador.docx');
-            if (!response.ok) throw new Error("No se pudo cargar la plantilla");
-            const content = await response.arrayBuffer();
-
-            // Obtener TODO el historial de observaciones del estudiante para el año activo
-            const { data: historial } = await supabase
-                .from('estudiante_observador')
-                .select('*')
-                .eq('estudiante_id', obs.estudiante_id)
-                .eq('anio_academico_id', activeYear.id)
-                .order('periodo');
-
+            const resp = await fetch('/plantillas/plantilla_observador.docx');
+            const content = await resp.arrayBuffer();
             const zip = new PizZip(content);
-            const doc = new Docxtemplater(zip, {
-                paragraphLoop: true,
-                linebreaks: true,
-                delimiters: { start: '%', end: '%' }
-            });
+            const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true, delimiters: { start: '%', end: '%' } });
 
-            // Fallback strategy for joined tables
-            const student = obs.estudiante || obs.estudiantes;
-            const curso = student?.curso || student?.cursos;
-
-            const periodNames = {
-                'P1': 'Primer Periodo',
-                'P2': 'Segundo Periodo',
-                'P3': 'Tercer Periodo',
-                'P4': 'Cuarto Periodo'
-            };
-
-            // Date formatting: lunes 9 de marzo de 2026
-            const fechaActualLong = new Date().toLocaleDateString('es-ES', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric'
-            });
-
-            const data = {
-                'nombres': student?.nombres?.toUpperCase() || '',
-                'apellidos': student?.apellidos?.toUpperCase() || '',
-                'apellidos y nombres': `${student?.apellidos || ''} ${student?.nombres || ''}`.toUpperCase(),
-                'numero_documento': student?.numero_documento || '',
-                'tipo_documento': student?.tipo_documento || '',
-                'curso': (curso?.nombre || 'N/A').toUpperCase(),
-                'grado': (curso?.nombre || 'N/A').toUpperCase(),
-                'periodo': periodNames[obs.periodo] || obs.periodo,
-                'fortalezas': obs.fortalezas || '',
-                'debilidades': obs.debilidades || '',
-                'estrategias': obs.estrategias || '',
-                'observaciones': obs.observaciones || '',
-                'anio': activeYear?.anio || '',
-                'año': activeYear?.anio || '',
-                'fecha actual': fechaActualLong,
-                'fecha': new Date().toLocaleDateString(),
-                // Extended student fields as requested
-                'fecha_nac': student?.fecha_nac || '',
-                'lugar_nacimiento': student?.lugar_nacimiento || '',
-                'direccion': student?.direccion || '',
-                'correo': student?.correo || '',
-                'telefono': student?.telefono || '',
-                'celular': student?.celular || '',
-                'eps': student?.eps || '',
-                'tipo_sangre': student?.tipo_sangre || '',
-                // Datos Familiares
-                'nombre_padre': student?.nombre_padre?.toUpperCase() || '',
-                'documento_padre': student?.documento_padre || '',
-                'ocupacion_padre': student?.ocupacion_padre || '',
-                'telefono_padre': student?.telefono_padre || '',
-                'nombre_madre': student?.nombre_madre?.toUpperCase() || '',
-                'documento_madre': student?.documento_madre || '',
-                'ocupacion_madre': student?.ocupacion_madre || '',
-                'telefono_madre': student?.telefono_madre || '',
-                // Detalle del Observador (Bucle)
-                'observadores': (historial || []).map(h => ({
-                    periodo: periodNames[h.periodo] || h.periodo,
-                    fortalezas: h.fortalezas || '',
-                    debilidades: h.debilidades || '',
-                    estrategias: h.estrategias || '',
-                    observaciones: h.observaciones || ''
-                }))
-            };
-
+            const data = getFullMappedData(studentData);
             doc.render(data);
+
             const out = doc.getZip().generate({ type: 'blob' });
-            saveAs(out, `Observador_${student?.apellidos || 'Reporte'}_${student?.nombres || ''}.docx`);
-            mostrarToast('Reporte generado correctamente', 'success');
+            saveAs(out, `Observador_${data.apellidos}_${data.nombres}.docx`);
         } catch (err) {
             console.error(err);
-            mostrarToast('Error: ' + err.message, 'error');
+            mostrarToast('Error al generar DOCX', 'error');
         } finally {
             setGenerating(false);
         }
     };
 
     const handleGenerateBulk = async (mode = 'single_doc') => {
-        if (observations.length === 0) return mostrarToast('No hay datos para generar', 'warning');
+        if (!observations.length) return mostrarToast('No hay datos', 'warning');
         setGenerating(true);
         try {
-            const response = await fetch('/plantillas/plantilla_observador.docx');
-            const templateBuffer = await response.arrayBuffer();
-
-            // Date formatting: lunes 9 de marzo de 2026
-            const fechaActualLong = new Date().toLocaleDateString('es-ES', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric'
-            });
-
-            const periodNames = {
-                'P1': 'Primer Periodo',
-                'P2': 'Segundo Periodo',
-                'P3': 'Tercer Periodo',
-                'P4': 'Cuarto Periodo'
-            };
+            const resp = await fetch('/plantillas/plantilla_observador.docx');
+            const templateBuffer = await resp.arrayBuffer();
 
             if (mode === 'zip') {
                 const zip = new JSZip();
-                for (const obs of observations) {
-                    const student = obs.estudiante || obs.estudiantes;
-                    const curso = student?.curso || student?.cursos;
-
-                    // Obtener historial individual para cada estudiante en el ZIP
-                    const { data: historial } = await supabase
-                        .from('estudiante_observador')
-                        .select('*')
-                        .eq('estudiante_id', obs.estudiante_id)
-                        .eq('anio_academico_id', activeYear.id)
-                        .order('periodo');
-
+                for (const studentData of observations) {
+                    if (!studentData.historial.length) continue;
                     const docZip = new PizZip(templateBuffer);
                     const doc = new Docxtemplater(docZip, { delimiters: { start: '%', end: '%' } });
-                    doc.render({
-                        'nombres': student?.nombres?.toUpperCase() || '',
-                        'apellidos': student?.apellidos?.toUpperCase() || '',
-                        'apellidos y nombres': `${student?.apellidos || ''} ${student?.nombres || ''}`.toUpperCase(),
-                        'numero_documento': student?.numero_documento || '',
-                        'tipo_documento': student?.tipo_documento || '',
-                        'periodo': periodNames[obs.periodo] || obs.periodo,
-                        'fortalezas': obs.fortalezas || '',
-                        'debilidades': obs.debilidades || '',
-                        'estrategias': obs.estrategias || '',
-                        'observaciones': obs.observaciones || '',
-                        'anio': activeYear?.anio || '',
-                        'año': activeYear?.anio || '',
-                        'curso': (curso?.nombre || 'N/A').toUpperCase(),
-                        'grado': (curso?.nombre || 'N/A').toUpperCase(),
-                        'fecha actual': fechaActualLong,
-                        'fecha_nac': student?.fecha_nac || '',
-                        'lugar_nacimiento': student?.lugar_nacimiento || '',
-                        'direccion': student?.direccion || '',
-                        'correo': student?.correo || '',
-                        'telefono': student?.telefono || '',
-                        'celular': student?.celular || '',
-                        'eps': student?.eps || '',
-                        'tipo_sangre': student?.tipo_sangre || '',
-                        // Datos Familiares
-                        'nombre_padre': student?.nombre_padre?.toUpperCase() || '',
-                        'documento_padre': student?.documento_padre || '',
-                        'ocupacion_padre': student?.ocupacion_padre || '',
-                        'telefono_padre': student?.telefono_padre || '',
-                        'nombre_madre': student?.nombre_madre?.toUpperCase() || '',
-                        'documento_madre': student?.documento_madre || '',
-                        'ocupacion_madre': student?.ocupacion_madre || '',
-                        'telefono_madre': student?.telefono_madre || '',
-                        // Historial
-                        'observadores': (historial || []).map(h => ({
-                            periodo: periodNames[h.periodo] || h.periodo,
-                            fortalezas: h.fortalezas || '',
-                            debilidades: h.debilidades || '',
-                            estrategias: h.estrategias || '',
-                            observaciones: h.observaciones || ''
-                        }))
-                    });
-                    const out = doc.getZip().generate({ type: 'uint8array' });
-                    zip.file(`Observador_${student?.apellidos || 'Reporte'}_${student?.nombres || ''}.docx`, out);
+                    const data = getFullMappedData(studentData);
+                    doc.render(data);
+                    zip.file(`Observador_${data.apellidos}_${data.nombres}.docx`, doc.getZip().generate({ type: 'uint8array' }));
                 }
-                const content = await zip.generateAsync({ type: 'blob' });
-                saveAs(content, `Observadores_${periodo}.zip`);
+                saveAs(await zip.generateAsync({ type: 'blob' }), `Observadores_${activeYear?.anio}.zip`);
             } else {
-                mostrarToast('Generando documento único...', 'info');
                 const docZip = new PizZip(templateBuffer);
                 const doc = new Docxtemplater(docZip, { delimiters: { start: '%', end: '%' } });
-
-                // Para el documento único, necesitamos traer los historiales de todos los estudiantes filtrados
-                const studentIds = observations.map(o => o.estudiante_id);
-                const { data: todosLosHistoriales } = await supabase
-                    .from('estudiante_observador')
-                    .select('*')
-                    .in('estudiante_id', studentIds)
-                    .eq('anio_academico_id', activeYear.id)
-                    .order('periodo');
-
-                const data = {
-                    estudiantes_lista: observations.map(obs => {
-                        const student = obs.estudiante || obs.estudiantes;
-                        const curso = student?.curso || student?.cursos;
-                        const historialEstudiante = (todosLosHistoriales || []).filter(h => h.estudiante_id === obs.estudiante_id);
-
-                        return {
-                            'nombres': student?.nombres?.toUpperCase() || '',
-                            'apellidos': student?.apellidos?.toUpperCase() || '',
-                            'apellidos y nombres': `${student?.apellidos || ''} ${student?.nombres || ''}`.toUpperCase(),
-                            'numero_documento': student?.numero_documento || '',
-                            'tipo_documento': student?.tipo_documento || '',
-                            'periodo': periodNames[obs.periodo] || obs.periodo,
-                            'fortalezas': obs.fortalezas || '',
-                            'debilidades': obs.debilidades || '',
-                            'estrategias': obs.estrategias || '',
-                            'observaciones': obs.observaciones || '',
-                            'anio': activeYear?.anio || '',
-                            'año': activeYear?.anio || '',
-                            'curso': (curso?.nombre || 'N/A').toUpperCase(),
-                            'grado': (curso?.nombre || 'N/A').toUpperCase(),
-                            'fecha actual': fechaActualLong,
-                            // Familiares
-                            'nombre_padre': student?.nombre_padre?.toUpperCase() || '',
-                            'documento_padre': student?.documento_padre || '',
-                            'ocupacion_padre': student?.ocupacion_padre || '',
-                            'telefono_padre': student?.telefono_padre || '',
-                            'nombre_madre': student?.nombre_madre?.toUpperCase() || '',
-                            'documento_madre': student?.documento_madre || '',
-                            'ocupacion_madre': student?.ocupacion_madre || '',
-                            'telefono_madre': student?.telefono_madre || '',
-                            // Otros datos
-                            'fecha_nac': student?.fecha_nac || '',
-                            'lugar_nacimiento': student?.lugar_nacimiento || '',
-                            'direccion': student?.direccion || '',
-                            'correo': student?.correo || '',
-                            'telefono': student?.telefono || '',
-                            'celular': student?.celular || '',
-                            'eps': student?.eps || '',
-                            'tipo_sangre': student?.tipo_sangre || '',
-                            'observadores': historialEstudiante.map(h => ({
-                                periodo: periodNames[h.periodo] || h.periodo,
-                                fortalezas: h.fortalezas || '',
-                                debilidades: h.debilidades || '',
-                                estrategias: h.estrategias || '',
-                                observaciones: h.observaciones || ''
-                            }))
-                        };
-                    })
-                };
-
-                try {
-                    doc.render(data);
-                } catch (error) {
-                    if (error.properties && error.properties.errors instanceof Array) {
-                        const errorMessages = error.properties.errors.map(function (error) {
-                            return error.properties.explanation;
-                        }).join("\n");
-                        console.error("Errores de plantilla:", errorMessages);
-                        throw new Error("Errores en la plantilla Word: " + errorMessages);
-                    }
-                    throw error;
-                }
-
-                const out = doc.getZip().generate({ type: 'blob' });
-                saveAs(out, `Observadores_Consolidado_${periodo}.docx`);
+                doc.render({
+                    estudiantes_lista: observations
+                        .filter(s => s.historial.length > 0)
+                        .map(s => getFullMappedData(s))
+                });
+                saveAs(doc.getZip().generate({ type: 'blob' }), `Observadores_Consolidado_${activeYear?.anio}.docx`);
             }
-            mostrarToast('Proceso completado', 'success');
         } catch (err) {
-            console.error("Error detallado:", err);
-            mostrarToast(err.message, 'error');
+            console.error(err);
+            mostrarToast('Error en generación masiva', 'error');
         } finally {
             setGenerating(false);
         }
     };
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 animate-fadeIn">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-black text-slate-800">Reporte de Observador</h2>
-                    <p className="text-slate-500 font-medium">Genera informes detallados del seguimiento estudiantil.</p>
+                    <p className="text-slate-500 font-medium">Informes detallados por estudiante (Historial Completo).</p>
                 </div>
             </div>
 
-            <div className="card bg-slate-900 border-none text-white p-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div className="card bg-slate-900 border-none text-white p-6 shadow-xl">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                     <div className="form-group">
-                        <label className="form-label text-blue-200">Curso</label>
+                        <label className="form-label text-blue-200 text-xs uppercase font-bold">Curso</label>
                         <select className="form-input bg-white/10 border-white/20 text-white" value={selectedCourse} onChange={e => setSelectedCourse(e.target.value)}>
-                            <option value="" className="text-slate-800">Seleccionar...</option>
+                            <option value="" className="text-slate-800">Seleccionar Curso...</option>
                             {courses.map(c => <option key={c.id} value={c.id} className="text-slate-800">{c.nombre}</option>)}
                         </select>
                     </div>
                     <div className="form-group">
-                        <label className="form-label text-blue-200">Estudiante (Opcional)</label>
+                        <label className="form-label text-blue-200 text-xs uppercase font-bold">Estudiante (Opcional)</label>
                         <select className="form-input bg-white/10 border-white/20 text-white" value={selectedStudent} onChange={e => setSelectedStudent(e.target.value)} disabled={!selectedCourse}>
                             <option value="" className="text-slate-800">Todos los estudiantes</option>
                             {students.map(s => <option key={s.id} value={s.id} className="text-slate-800">{s.apellidos}, {s.nombres}</option>)}
                         </select>
                     </div>
-                    <div className="form-group">
-                        <label className="form-label text-blue-200">Periodo</label>
-                        <select className="form-input bg-white/10 border-white/20 text-white" value={periodo} onChange={e => setPeriodo(e.target.value)}>
-                            <option value="" className="text-slate-800">Seleccionar...</option>
-                            <option value="P1" className="text-slate-800">Periodo 1</option>
-                            <option value="P2" className="text-slate-800">Periodo 2</option>
-                            <option value="P3" className="text-slate-800">Periodo 3</option>
-                            <option value="P4" className="text-slate-800">Periodo 4</option>
-                        </select>
-                    </div>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => handleGenerateBulk('single_doc')}
-                            className="btn btn-primary flex-1"
-                            disabled={generating || !selectedCourse || !periodo}
-                        >
-                            <span className="material-symbols-outlined">description</span>
-                            DOCX Único
-                        </button>
-                        <button
-                            onClick={() => handleGenerateBulk('zip')}
-                            className="btn btn-secondary flex-1"
-                            disabled={generating || !selectedCourse || !periodo}
-                        >
-                            <span className="material-symbols-outlined">folder_zip</span>
-                            ZIP (Individuales)
-                        </button>
-                    </div>
+                </div>
+
+                <div className="flex gap-3 mt-6">
+                    <button onClick={() => handleGenerateBulk('single_doc')} className="btn btn-primary flex-1 py-4" disabled={generating || !selectedCourse}>
+                        <span className="material-symbols-outlined">description</span> DOCX Consolidado
+                    </button>
+                    <button onClick={() => handleGenerateBulk('zip')} className="btn btn-secondary flex-1 py-4" disabled={generating || !selectedCourse}>
+                        <span className="material-symbols-outlined">folder_zip</span> Descargar ZIP
+                    </button>
                 </div>
             </div>
 
             {loading ? (
-                <div className="p-20 text-center text-slate-400 font-bold">Cargando datos del reporte...</div>
+                <div className="p-20 text-center"><span className="loading loading-spinner loading-lg text-primary"></span></div>
             ) : previewData ? (
-                <div className="animate-fadeIn">
-                    <div className="flex justify-end mb-4 gap-2">
+                <div className="space-y-4">
+                    <div className="flex justify-end gap-2">
                         <button onClick={() => window.print()} className="btn btn-ghost border-slate-200">
-                            <span className="material-symbols-outlined">print</span> Imprimir
+                            <span className="material-symbols-outlined text-[20px]">print</span> Imprimir
                         </button>
                         <button onClick={() => handleGenerateSingle(previewData)} className="btn btn-primary" disabled={generating}>
-                            <span className="material-symbols-outlined">download</span> Descargar DOCX
+                            <span className="material-symbols-outlined text-[20px]">download</span> Descargar DOCX
                         </button>
                     </div>
 
-                    {/* Paper Preview */}
-                    <div className="preview-paper bg-white shadow-2xl mx-auto p-[2cm] min-h-[27.9cm] w-[21.6cm] text-slate-900 border border-slate-200 print:shadow-none print:border-none print:m-0 print:p-0">
+                    <div className="preview-paper bg-white shadow-2xl mx-auto p-[1.5cm] md:p-[2cm] min-h-[27.9cm] w-full max-w-[21.6cm] text-slate-900 border border-slate-200 print:shadow-none print:border-none print:m-0 print:p-0">
                         <div className="border-b-4 border-blue-600 pb-4 mb-6 flex justify-between items-center">
                             <div>
                                 <h1 className="text-2xl font-black text-blue-600 uppercase">Observador del Alumno</h1>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">{activeYear?.anio || ''} - {periodo}</p>
-                            </div>
-                            <div className="text-right text-[10px] font-bold uppercase text-slate-500">
-                                <p>Fecha de Generación: {new Date().toLocaleDateString()}</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{activeYear?.anio} - HISTORIAL COMPLETO</p>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 mb-8">
-                            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Nombre Completo</label>
-                                <p className="font-bold text-slate-800 uppercase">
-                                    {(previewData.estudiante || previewData.estudiantes)?.nombres} {(previewData.estudiante || previewData.estudiantes)?.apellidos}
-                                </p>
-                                <p className="text-[10px] text-slate-500">
-                                    {(previewData.estudiante || previewData.estudiantes)?.tipo_documento}: {(previewData.estudiante || previewData.estudiantes)?.numero_documento}
-                                </p>
+                            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 shadow-sm">
+                                <label className="text-[9px] font-black text-slate-400 uppercase mb-1 block">Estudiante</label>
+                                <p className="font-bold text-slate-800 uppercase text-sm">{previewData.estudiante.apellidos} {previewData.estudiante.nombres}</p>
+                                <p className="text-[10px] text-slate-500 font-medium">{previewData.estudiante.tipo_documento}: {previewData.estudiante.numero_documento}</p>
                             </div>
-                            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Curso / Grado</label>
-                                <p className="font-bold text-slate-800 uppercase">
-                                    {((previewData.estudiante || previewData.estudiantes)?.curso || (previewData.estudiante || previewData.estudiantes)?.cursos)?.nombre || 'N/A'}
-                                </p>
-                                <p className="text-[10px] text-slate-500">Año Académico: {activeYear?.anio || 'N/A'}</p>
+                            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 shadow-sm">
+                                <label className="text-[9px] font-black text-slate-400 uppercase mb-1 block">Curso</label>
+                                <p className="font-bold text-slate-800 uppercase text-sm">{previewData.estudiante.curso?.nombre || 'N/A'}</p>
+                                <p className="text-[10px] text-slate-500 font-medium">Año: {activeYear?.anio}</p>
                             </div>
                         </div>
 
                         <div className="space-y-6">
-                            <div className="section">
-                                <h3 className="text-xs font-black text-blue-600 uppercase border-b pb-1 mb-2">1. Fortalezas</h3>
-                                <p className="text-sm leading-relaxed text-justify whitespace-pre-wrap min-h-[100px]">{previewData.fortalezas || 'No se registraron fortalezas para este periodo.'}</p>
-                            </div>
-                            <div className="section">
-                                <h3 className="text-xs font-black text-rose-600 uppercase border-b pb-1 mb-2">2. Debilidades</h3>
-                                <p className="text-sm leading-relaxed text-justify whitespace-pre-wrap min-h-[100px]">{previewData.debilidades || 'No se registraron debilidades para este periodo.'}</p>
-                            </div>
-                            <div className="section">
-                                <h3 className="text-xs font-black text-amber-600 uppercase border-b pb-1 mb-2">3. Estrategias Implementadas</h3>
-                                <p className="text-sm leading-relaxed text-justify whitespace-pre-wrap min-h-[100px]">{previewData.estrategias || 'No se registraron estrategias para este periodo.'}</p>
-                            </div>
-                            <div className="section">
-                                <h3 className="text-xs font-black text-slate-500 uppercase border-b pb-1 mb-2">4. Observaciones Generales</h3>
-                                <p className="text-sm leading-relaxed text-justify whitespace-pre-wrap min-h-[100px]">{previewData.observaciones || 'Sin observaciones adicionales.'}</p>
-                            </div>
+                            {previewData.historial.length > 0 ? previewData.historial.map((h, idx) => (
+                                <div key={h.id} className="border-2 border-slate-100 rounded-xl p-5 bg-slate-50/50 relative overflow-hidden">
+                                    <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
+                                    <h3 className="text-sm font-black text-blue-700 uppercase mb-4 flex items-center gap-2">
+                                        <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px]">{idx + 1}</span>
+                                        {periodNames[h.periodo] || h.periodo}
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
+                                        <div>
+                                            <h4 className="text-[9px] font-black uppercase text-slate-400 mb-1 border-b border-slate-200">Fortalezas</h4>
+                                            <p className="text-[11px] text-slate-700 text-justify leading-relaxed whitespace-pre-wrap">{h.fortalezas || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <h4 className="text-[9px] font-black uppercase text-slate-400 mb-1 border-b border-slate-200">Debilidades</h4>
+                                            <p className="text-[11px] text-slate-700 text-justify leading-relaxed whitespace-pre-wrap">{h.debilidades || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <h4 className="text-[9px] font-black uppercase text-slate-400 mb-1 border-b border-slate-200">Estrategias</h4>
+                                            <p className="text-[11px] text-slate-700 text-justify leading-relaxed whitespace-pre-wrap">{h.estrategias || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <h4 className="text-[9px] font-black uppercase text-slate-400 mb-1 border-b border-slate-200">Observaciones</h4>
+                                            <p className="text-[11px] text-slate-700 text-justify leading-relaxed whitespace-pre-wrap">{h.observaciones || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )) : (
+                                <div className="text-center py-10 text-slate-300 italic font-medium">No se registran seguimientos para este año.</div>
+                            )}
                         </div>
 
-                        <div className="mt-20 pt-10 border-t border-slate-200 grid grid-cols-2 gap-10">
+                        <div className="mt-20 pt-10 border-t-2 border-slate-100 grid grid-cols-2 gap-10">
                             <div className="text-center">
                                 <div className="h-0.5 bg-slate-200 mb-2 mx-10"></div>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase">Firma del Docente / Director</p>
+                                <p className="text-[9px] font-bold text-slate-400 uppercase">Firma del Docente / Director</p>
                             </div>
                             <div className="text-center">
                                 <div className="h-0.5 bg-slate-200 mb-2 mx-10"></div>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase">Firma Padre de Familia / Tutor</p>
+                                <p className="text-[9px] font-bold text-slate-400 uppercase">Firma Acudiente / Tutor</p>
                             </div>
                         </div>
                     </div>
                 </div>
-            ) : selectedCourse && periodo ? (
-                <div className="card text-center p-20 border-dashed border-2">
-                    <span className="material-symbols-outlined text-6xl text-slate-300 mb-4">person_search</span>
-                    <p className="text-slate-500 font-medium whitespace-pre-line">
-                        {selectedStudent
-                            ? "No se encontraron registros del observador para este estudiante en el periodo seleccionado."
-                            : `Lista cargada (${observations.length} registros).\nSelecciona un estudiante para previsualizar o descarga el reporte global.`}
-                    </p>
+            ) : selectedCourse ? (
+                <div className="card text-center p-20 border-dashed border-2 bg-slate-50">
+                    <span className="material-symbols-outlined text-6xl text-slate-300 mb-4">group</span>
+                    <p className="text-slate-500 font-medium">Selecciona un alumno para previsualizar su historial completo.</p>
                 </div>
             ) : (
-                <div className="card text-center p-20 border-dashed border-2">
+                <div className="card text-center p-20 border-dashed border-2 bg-slate-50">
                     <span className="material-symbols-outlined text-6xl text-slate-300 mb-4">clinical_notes</span>
-                    <p className="text-slate-500 font-medium">Selecciona un curso y periodo para generar los reportes.</p>
+                    <p className="text-slate-500 font-medium">Selecciona un curso para comenzar a generar los reportes.</p>
                 </div>
             )}
         </div>
