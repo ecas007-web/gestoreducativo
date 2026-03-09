@@ -105,7 +105,7 @@ Las funcionalidades que debe tener la app son estas:
         hay estudiantes con descuento especial para todo el año, se debe permitir registra el descuento para que no salga en mora al sacar el reporte de los estudiantes  con mora
 
 reportes:
-    generar un certificado estudiantil tomando la plantilla ubicada en la ruta public/plantillas/plantilla_certificado.docx
+    se debe agragar un boton en el modulo de estudiantes para generar un certificado estudiantil tomando la plantilla ubicada en la ruta public/plantillas/plantilla_certificado.docx
     los parámetros esta entre el símbolo %% 
     •	apellidos y nombre
     •	documento
@@ -114,6 +114,49 @@ reportes:
     •	fecha actual: ejemplo de formato; “domingo 8 de marzo de 2026”
 
 
+modulo de comportamiento:
+se debe crear un modulo para gestionar los comportamientos del estudiante por periodo (son 4 periodos), este modulo debe tener los campos:
+•	estudiante
+•	periodo (primer periodo, segundo periodo, tercer periodo, cuarto periodo )
+•	escala (bajo, básico, alto, superior)
+•	descripción: texto largo
+visualmente: muestra todos los estudiantes del grado seleccionado y a cada registro al final colocar un boton guardar
+los filtros que se manejan son: periodo, grado
+
+
+
+ boletines
+ en el modulo "generador de boletines" se debe agragar un boton para generar boletines para todos los estudiantes del filtro seleccionado, tomando la plantilla ubicada en la ruta public/plantillas/plantilla_boletin.docx
+    
+los parámetros esta entre el símbolo %% 
+
+      el encabezado del boletin es:
+    •	apellidos y nombres
+    •	grado
+    •	periodo
+    •	docente 
+
+    el detalle son las calificaciones de las asiganaturas con su respectivo logro concatenado, y su escala de la tabla calificaciones
+        -asignatura
+        - escala
+        - logro concatenado
+
+    el detalle de los comportamientos esta en la tabla comportamientos los parametros son:
+    •	escala_comportamiento
+    •	descripción_comportamiento
+
+
+
+
+
+
+ se debe agragar un boton en el modulo de estudiantes para generar un certificado estudiantil tomando la plantilla ubicada en la ruta public/plantillas/plantilla_certificado.docx
+    los parámetros esta entre el símbolo %% 
+    •	apellidos y nombre
+    •	documento
+    •	grado
+    •	año
+    •	fecha actual: ejemplo de formato; “domingo 8 de marzo de 2026”
 
 •	Funcionalidades de la app
     1.	Realizar el backen en supabase

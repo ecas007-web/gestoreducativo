@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, ADMIN_CREATOR_EMAIL, SCHOOL_NAME } from '../config.jsx';
+import { useAuth } from '../AuthContext.jsx';
 import { mostrarToast } from '../utils.jsx';
 
 export const LoginPage = () => {
     const navigate = useNavigate();
+    const { setProfile } = useAuth();
     const [rol, setRol] = useState('admin');
     const [loading, setLoading] = useState(false);
     const [view, setView] = useState('login'); // 'login', 'student_register', 'admin_register'
@@ -67,6 +69,9 @@ export const LoginPage = () => {
                 await supabase.auth.signOut();
                 throw new Error('El usuario no tiene el rol seleccionado.');
             }
+
+            // Actualizar el perfil manualmente para evitar carrera de estados con el router
+            setProfile(profile);
 
             mostrarToast(`Bienvenido, acceso como ${rol}`, 'success');
             navigate(`/${rol}/dashboard`);

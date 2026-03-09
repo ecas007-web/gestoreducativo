@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../config.jsx';
 import { mostrarToast } from '../../utils.jsx';
+import PizZip from 'pizzip';
+import Docxtemplater from 'docxtemplater';
+import { saveAs } from 'file-saver';
+import JSZip from 'jszip';
 
 export const ReportsManager = () => {
     const [courses, setCourses] = useState([]);
@@ -9,6 +13,7 @@ export const ReportsManager = () => {
     const [selectedStudent, setSelectedStudent] = useState('');
     const [reportData, setReportData] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [generatingDocx, setGeneratingDocx] = useState(false);
     const [periodo, setPeriodo] = useState('P1');
 
     useEffect(() => {
@@ -51,6 +56,121 @@ export const ReportsManager = () => {
         }
     };
 
+    const generateAllBulletins = async () => {
+        if (!selectedCourse) return mostrarToast('Selecciona un curso primero', 'warning');
+        setGeneratingDocx(true);
+        try {
+            // 1. Cargar plantilla
+            const response = await fetch('/plantillas/plantilla_boletin.docx');
+            if (!response.ok) throw new Error('No se pudo cargar la plantilla del boletín en public/plantillas/plantilla_boletin.docx');
+            const templateBuffer = await response.arrayBuffer();
+
+            // 2. Obtener año académico activo
+            const { data: activeYear } = await supabase.from('anios_academicos').select('*').eq('estado', true).maybeSingle();
+            if (!activeYear) throw new Error('No hay un año académico activo configurado.');
+
+            // 3. Obtener docente del curso
+            const { data: docenteRel } = await supabase
+                .from('docente_cursos')
+                .select('docentes(nombres, apellidos)')
+                .eq('curso_id', selectedCourse)
+                .limit(1)
+                .maybeSingle();
+            const teacherName = docenteRel?.docentes
+                ? `${docenteRel.docentes.nombres} ${docenteRel.docentes.apellidos}`.toUpperCase()
+                : 'POR ASIGNAR';
+
+            // 4. Obtener todos los estudiantes del curso
+            const { data: allStudents } = await supabase
+                .from('estudiantes')
+                .select('*')
+                .eq('curso_id', selectedCourse)
+                .order('apellidos');
+
+            if (!allStudents || allStudents.length === 0) throw new Error('No hay estudiantes en este curso.');
+
+            // 5. Obtener todas las notas y comportamientos en paralelo para mayor eficiencia
+            const [notasRes, compRes] = await Promise.all([
+                supabase.from('calificaciones')
+                    .select('*, materias(nombre)')
+                    .eq('curso_id', selectedCourse)
+                    .eq('periodo', periodo)
+                    .eq('anio_academico_id', activeYear.id),
+                supabase.from('comportamientos')
+                    .select('*')
+                    .eq('periodo', periodo)
+                    .eq('anio_academico_id', activeYear.id)
+            ]);
+
+            const zip = new JSZip();
+            const periodLabels = { 'P1': 'PRIMER PERIODO', 'P2': 'SEGUNDO PERIODO', 'P3': 'TERCER PERIODO', 'P4': 'CUARTO PERIODO' };
+
+            for (const student of allStudents) {
+                const studentGrades = (notasRes.data?.filter(n => n.estudiante_id === student.id) || [])
+                    .sort((a, b) => {
+                        const nameA = a.materias?.nombre || '';
+                        const nameB = b.materias?.nombre || '';
+                        const isCompA = nameA.toLowerCase().includes('comportamiento');
+                        const isCompB = nameB.toLowerCase().includes('comportamiento');
+
+                        if (isCompA && !isCompB) return 1;
+                        if (!isCompA && isCompB) return -1;
+                        return nameA.localeCompare(nameB, 'es', { sensitivity: 'base' });
+                    });
+                const studentBehavior = compRes.data?.find(b => b.estudiante_id === student.id);
+
+                const studentZip = new PizZip(templateBuffer);
+                const doc = new Docxtemplater(studentZip, {
+                    paragraphLoop: true,
+                    linebreaks: true,
+                    delimiters: { start: '%', end: '%' } // Match successful certificates
+                });
+
+                const fullName = `${student.apellidos} ${student.nombres}`.toUpperCase();
+                const studentGradesMapped = studentGrades.map(n => ({
+                    'asignatura': n.materias?.nombre.toUpperCase() || 'N/A',
+                    'escala': n.escala_valorativa || 'N/A',
+                    'logro_concatenado': n.logro_calculado || 'N/A',
+                    'logro': n.logro_calculado || 'N/A'
+                }));
+
+                const docData = {
+                    'apellidos_y_nombres': fullName,
+                    'apellidos y nombres': fullName,
+                    'grado': courses.find(c => c.id === selectedCourse)?.nombre.toUpperCase() || 'N/A',
+                    'ano': activeYear?.anio || new Date().getFullYear(),
+                    'año': activeYear?.anio || new Date().getFullYear(),
+                    'periodo': periodLabels[periodo] || periodo,
+                    'docente': teacherName,
+                    // Provide the list with multiple names just in case
+                    'asignaturas': studentGradesMapped,
+                    'calificaciones': studentGradesMapped,
+                    // Behavior fields with and without accents
+                    'escala_comportamiento': studentBehavior?.escala || 'N/A',
+                    'escala comportamiento': studentBehavior?.escala || 'N/A',
+                    'descripcion_comportamiento': studentBehavior?.descripcion || 'Sin observaciones registradas.',
+                    'descripción_comportamiento': studentBehavior?.descripcion || 'Sin observaciones registradas.',
+                    'descripcion comportamiento': studentBehavior?.descripcion || 'Sin observaciones registradas.',
+                    'descripción comportamiento': studentBehavior?.descripcion || 'Sin observaciones registradas.'
+                };
+
+                doc.render(docData);
+                const out = doc.getZip().generate({ type: 'uint8array' });
+                zip.file(`Boletin_${student.apellidos}_${student.nombres}.docx`, out, { binary: true });
+            }
+
+            const finalZip = await zip.generateAsync({ type: 'blob' });
+            saveAs(finalZip, `Boletines_${courses.find(c => c.id === selectedCourse)?.nombre}_${periodo}.zip`);
+            mostrarToast('Boletines generados correctamente en un archivo ZIP', 'success');
+
+        } catch (err) {
+            console.error(err);
+            mostrarToast(err.message, 'error');
+        } finally {
+            setGeneratingDocx(false);
+        }
+    };
+
     const getQualitative = (nota) => {
         if (nota >= 4.5) return { text: 'Superior', className: 'text-emerald-600' };
         if (nota >= 4.0) return { text: 'Alto', className: 'text-blue-600' };
@@ -88,6 +208,19 @@ export const ReportsManager = () => {
                     </div>
                     <button onClick={generateReport} className="btn btn-primary h-[45px]" disabled={loading || !selectedStudent}>
                         {loading ? 'Generando...' : 'Ver Boletín'}
+                    </button>
+                    <button onClick={generateAllBulletins} className="btn btn-secondary h-[45px]" disabled={generatingDocx || !selectedCourse}>
+                        {generatingDocx ? (
+                            <>
+                                <span className="loading loading-spinner loading-xs"></span>
+                                Generando ZIP...
+                            </>
+                        ) : (
+                            <>
+                                <span className="material-symbols-outlined">download</span>
+                                Boletines (DOCX)
+                            </>
+                        )}
                     </button>
                 </div>
             </div>
