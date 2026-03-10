@@ -10,6 +10,7 @@ export const AchievementSettings = () => {
     const [courses, setCourses] = useState([]);
     const [subjects, setSubjects] = useState([]);
     const [achievements, setAchievements] = useState([]);
+    const [periodosEstado, setPeriodosEstado] = useState([]);
 
     const [loading, setLoading] = useState(true);
     const [modal, setModal] = useState({ open: false, data: null });
@@ -82,6 +83,8 @@ export const AchievementSettings = () => {
             // 3. Load existing achievements for the active year
             if (yData) {
                 loadAchievements(yData.id);
+                const { data: pData } = await supabase.from('periodos_estado').select('*').eq('anio_academico_id', yData.id);
+                setPeriodosEstado(pData || []);
             }
         } catch (error) {
             console.error(error);
@@ -108,6 +111,11 @@ export const AchievementSettings = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!activeYear) return mostrarToast('No hay un año académico activo.', 'warning');
+
+        const isPeriodoAbierto = (periodosEstado || []).find(p => p.periodo === formData.periodo)?.estado !== false;
+        if (!isPeriodoAbierto) {
+            return mostrarToast(`El periodo ${formData.periodo} se encuentra CERRADO. No se pueden realizar cambios.`, 'error');
+        }
 
         const payload = {
             ...formData,
@@ -225,8 +233,14 @@ export const AchievementSettings = () => {
                                     <td><span className="badge badge-primary">{item.periodo}</span></td>
                                     <td className="text-slate-500 text-sm italic max-w-md truncate">{item.logro}</td>
                                     <td className="text-right">
-                                        <button onClick={() => openModal(item)} className="btn btn-ghost btn-sm">
-                                            <span className="material-symbols-outlined text-slate-400">edit</span>
+                                        <button
+                                            onClick={() => openModal(item)}
+                                            className={`btn btn-ghost btn-sm ${periodosEstado.find(p => p.periodo === item.periodo)?.estado === false ? 'opacity-30 cursor-not-allowed' : ''}`}
+                                            disabled={periodosEstado.find(p => p.periodo === item.periodo)?.estado === false}
+                                        >
+                                            <span className="material-symbols-outlined text-slate-400">
+                                                {periodosEstado.find(p => p.periodo === item.periodo)?.estado === false ? 'lock' : 'edit'}
+                                            </span>
                                         </button>
                                     </td>
                                 </tr>
@@ -311,7 +325,13 @@ export const AchievementSettings = () => {
 
                             <div className="modal-footer">
                                 <button type="button" onClick={() => setModal({ open: false, data: null })} className="btn btn-ghost">Cancelar</button>
-                                <button type="submit" className="btn btn-primary flex-1">{modal.data ? 'Actualizar Logro' : 'Guardar Logro'}</button>
+                                <button
+                                    type="submit"
+                                    className={`btn btn-primary flex-1 ${periodosEstado.find(p => p.periodo === formData.periodo)?.estado === false ? 'bg-slate-300 pointer-events-none' : ''}`}
+                                    disabled={periodosEstado.find(p => p.periodo === formData.periodo)?.estado === false}
+                                >
+                                    {periodosEstado.find(p => p.periodo === formData.periodo)?.estado === false ? 'Periodo Cerrado' : (modal.data ? 'Actualizar Logro' : 'Guardar Logro')}
+                                </button>
                             </div>
                         </form>
                     </div>

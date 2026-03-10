@@ -9,6 +9,7 @@ export const BehaviorManagement = () => {
     const [students, setStudents] = useState([]);
     const [behaviors, setBehaviors] = useState({});
     const [activeYear, setActiveYear] = useState(null);
+    const [periodosEstado, setPeriodosEstado] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState({});
 
@@ -53,6 +54,10 @@ export const BehaviorManagement = () => {
                         setCourses(assigned?.map(a => a.cursos) || []);
                     }
                 }
+            }
+            if (yData) {
+                const { data: pData } = await supabase.from('periodos_estado').select('*').eq('anio_academico_id', yData.id);
+                setPeriodosEstado(pData || []);
             }
         } catch (error) {
             console.error(error);
@@ -121,6 +126,13 @@ export const BehaviorManagement = () => {
 
         setSaving(prev => ({ ...prev, [studentId]: true }));
         const data = behaviors[studentId];
+
+        const isPeriodoAbierto = (periodosEstado || []).find(p => p.periodo === filterPeriod)?.estado !== false;
+        if (!isPeriodoAbierto) {
+            mostrarToast(`El periodo ${filterPeriod} se encuentra CERRADO. No se pueden realizar cambios.`, 'error');
+            setSaving(prev => ({ ...prev, [studentId]: false }));
+            return;
+        }
 
         const payload = {
             estudiante_id: studentId,
@@ -235,9 +247,10 @@ export const BehaviorManagement = () => {
                                             </td>
                                             <td className="py-4 px-6 min-w-[150px]">
                                                 <select
-                                                    className="form-input text-sm"
+                                                    className={`form-input text-sm ${periodosEstado.find(p => p.periodo === filterPeriod)?.estado === false ? 'bg-slate-50 cursor-not-allowed opacity-60' : ''}`}
                                                     value={behaviors[student.id]?.escala || 'Alto'}
                                                     onChange={(e) => handleBehaviorChange(student.id, 'escala', e.target.value)}
+                                                    disabled={periodosEstado.find(p => p.periodo === filterPeriod)?.estado === false}
                                                 >
                                                     <option value="Bajo">Bajo</option>
                                                     <option value="Básico">Básico</option>
@@ -247,24 +260,27 @@ export const BehaviorManagement = () => {
                                             </td>
                                             <td className="py-4 px-6 min-w-[300px]">
                                                 <textarea
-                                                    className="form-input text-sm min-h-[80px] resize-y"
+                                                    className={`form-input text-sm min-h-[80px] resize-y ${periodosEstado.find(p => p.periodo === filterPeriod)?.estado === false ? 'bg-slate-50 cursor-not-allowed opacity-60' : ''}`}
                                                     placeholder="Ej: El estudiante demuestra un comportamiento ejemplar..."
                                                     value={behaviors[student.id]?.descripcion || ''}
                                                     onChange={(e) => handleBehaviorChange(student.id, 'descripcion', e.target.value)}
+                                                    disabled={periodosEstado.find(p => p.periodo === filterPeriod)?.estado === false}
                                                 ></textarea>
                                             </td>
                                             <td className="py-4 px-6 text-right">
                                                 <button
                                                     onClick={() => handleSave(student.id)}
-                                                    disabled={saving[student.id]}
-                                                    className="btn btn-primary btn-sm min-w-[100px]"
+                                                    disabled={saving[student.id] || periodosEstado.find(p => p.periodo === filterPeriod)?.estado === false}
+                                                    className={`btn btn-sm min-w-[100px] ${periodosEstado.find(p => p.periodo === filterPeriod)?.estado === false ? 'bg-slate-100 text-slate-300 pointer-events-none' : 'btn-primary'}`}
                                                 >
                                                     {saving[student.id] ? (
                                                         <span className="loading loading-spinner loading-xs"></span>
                                                     ) : (
                                                         <>
-                                                            <span className="material-symbols-outlined text-[18px]">save</span>
-                                                            Guardar
+                                                            <span className="material-symbols-outlined text-[18px]">
+                                                                {periodosEstado.find(p => p.periodo === filterPeriod)?.estado === false ? 'lock' : 'save'}
+                                                            </span>
+                                                            {periodosEstado.find(p => p.periodo === filterPeriod)?.estado === false ? 'Cerrado' : 'Guardar'}
                                                         </>
                                                     )}
                                                 </button>
