@@ -202,11 +202,11 @@ export const StudentsManager = () => {
                     <option value="">Todos los Años</option>
                     {years.map(y => <option key={y.id} value={y.id}>{y.anio} {y.estado ? '(Activo)' : ''}</option>)}
                 </select>
-                <select className="form-input md:w-48" value={filters.courseId} onChange={e => setFilters({ ...filters, courseId: e.target.value })}>
+                <select className="form-input md:w-80" value={filters.courseId} onChange={e => setFilters({ ...filters, courseId: e.target.value })}>
                     <option value="">Todos los Cursos</option>
                     {courses.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                 </select>
-                <select className="form-input md:w-48" value={filters.status} onChange={e => setFilters({ ...filters, status: e.target.value })}>
+                <select className="form-input md:w-80" value={filters.status} onChange={e => setFilters({ ...filters, status: e.target.value })}>
                     <option value="">Todos los Estados</option>
                     <option value="pending">Pre-registro</option>
                     <option value="complete">Completo</option>
@@ -218,6 +218,7 @@ export const StudentsManager = () => {
                     <table className="data-table whitespace-nowrap">
                         <thead>
                             <tr>
+                                <th className="text-left sticky right-0 bg-white z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)] px-8">Acciones</th>
                                 <th className="sticky left-0 bg-white z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">Estudiante</th>
                                 <th>Identificación</th>
                                 <th>Curso</th>
@@ -226,47 +227,11 @@ export const StudentsManager = () => {
                                 <th>Padre</th>
                                 <th>Madre</th>
                                 <th>Estado</th>
-                                <th className="text-left sticky right-0 bg-white z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)] px-8">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredStudents.map(s => (
                                 <tr key={s.id}>
-                                    <td className="sticky left-0 bg-white z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
-                                        <div className="font-bold text-slate-900">{s.nombres} {s.apellidos}</div>
-                                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{s.tipo_documento} {s.numero_documento}</div>
-                                    </td>
-                                    <td>
-                                        <div className="text-sm font-medium">{s.tipo_documento} {s.numero_documento}</div>
-                                        <div className="text-xs text-slate-400">{s.fecha_nac ? new Date(s.fecha_nac).toLocaleDateString() : 'Sin fecha'}</div>
-                                    </td>
-                                    <td><span className="badge badge-primary">{s.cursos?.nombre || 'Sin asignar'}</span></td>
-                                    <td className="text-xs">
-                                        <div className="font-bold">{s.sexo === 'M' ? 'Masculino' : s.sexo === 'F' ? 'Femenino' : 'N/A'}</div>
-                                        <div>RH: {s.tipo_sangre || 'S/G'}</div>
-                                        <div className="text-slate-400">{s.lugar_nacimiento || 'S/L'}</div>
-                                    </td>
-                                    <td className="text-xs">
-                                        <div className="font-medium">{s.celular || s.telefono || 'Sin tel.'}</div>
-                                        <div className="text-slate-400">{s.correo || 'Sin correo'}</div>
-                                        <div className="text-[10px] truncate max-w-[120px]">{s.direccion || 'Sin dir.'}</div>
-                                    </td>
-                                    <td className="text-xs">
-                                        <div className="font-bold">{s.nombre_padre || 'Sin datos'}</div>
-                                        <div className="text-slate-400">{s.telefono_padre || s.documento_padre || '-'}</div>
-                                        <div className="italic text-[10px]">{s.ocupacion_padre || '-'}</div>
-                                    </td>
-                                    <td className="text-xs">
-                                        <div className="font-bold">{s.nombre_madre || 'Sin datos'}</div>
-                                        <div className="text-slate-400">{s.telefono_madre || s.documento_madre || '-'}</div>
-                                        <div className="italic text-[10px]">{s.ocupacion_madre || '-'}</div>
-                                    </td>
-
-                                    <td>
-                                        <span className={`badge ${s.registro_completo ? 'badge-success' : 'badge-warning'}`}>
-                                            {s.registro_completo ? 'Completo' : 'Pendiente'}
-                                        </span>
-                                    </td>
                                     <td className="text-left sticky right-0 bg-white z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)] px-8">
                                         <div className="flex justify-start gap-6">
                                             <button
@@ -310,6 +275,41 @@ export const StudentsManager = () => {
                                                 </>
                                             )}
                                         </div>
+                                    </td>
+                                    <td className="sticky left-0 bg-white z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
+                                        <div className="font-bold text-slate-900">{s.nombres} {s.apellidos}</div>
+                                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{s.tipo_documento} {s.numero_documento}</div>
+                                    </td>
+                                    <td>
+                                        <div className="text-sm font-medium">{s.tipo_documento} {s.numero_documento}</div>
+                                        <div className="text-xs text-slate-400">{s.fecha_nac ? new Date(s.fecha_nac).toLocaleDateString() : 'Sin fecha'}</div>
+                                    </td>
+                                    <td><span className="badge badge-primary">{s.cursos?.nombre || 'Sin asignar'}</span></td>
+                                    <td className="text-xs">
+                                        <div className="font-bold">{s.sexo === 'M' ? 'Masculino' : s.sexo === 'F' ? 'Femenino' : 'N/A'}</div>
+                                        <div>RH: {s.tipo_sangre || 'S/G'}</div>
+                                        <div className="text-slate-400">{s.lugar_nacimiento || 'S/L'}</div>
+                                    </td>
+                                    <td className="text-xs">
+                                        <div className="font-medium">{s.celular || s.telefono || 'Sin tel.'}</div>
+                                        <div className="text-slate-400">{s.correo || 'Sin correo'}</div>
+                                        <div className="text-[10px] truncate max-w-[120px]">{s.direccion || 'Sin dir.'}</div>
+                                    </td>
+                                    <td className="text-xs">
+                                        <div className="font-bold">{s.nombre_padre || 'Sin datos'}</div>
+                                        <div className="text-slate-400">{s.telefono_padre || s.documento_padre || '-'}</div>
+                                        <div className="italic text-[10px]">{s.ocupacion_padre || '-'}</div>
+                                    </td>
+                                    <td className="text-xs">
+                                        <div className="font-bold">{s.nombre_madre || 'Sin datos'}</div>
+                                        <div className="text-slate-400">{s.telefono_madre || s.documento_madre || '-'}</div>
+                                        <div className="italic text-[10px]">{s.ocupacion_madre || '-'}</div>
+                                    </td>
+
+                                    <td>
+                                        <span className={`badge ${s.registro_completo ? 'badge-success' : 'badge-warning'}`}>
+                                            {s.registro_completo ? 'Completo' : 'Pendiente'}
+                                        </span>
                                     </td>
                                 </tr>
                             ))}
