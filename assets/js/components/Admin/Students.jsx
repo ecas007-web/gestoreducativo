@@ -184,8 +184,8 @@ export const StudentsManager = () => {
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-black text-slate-800">Gestión de Estudiantes</h2>
-                    <p className="text-slate-500">Administra los perfiles completos de los alumnos.</p>
+                    <h2 className="text-xl md:text-3xl font-black text-slate-800 leading-tight">Gestión de Estudiantes</h2>
+                    <p className="text-slate-500 text-sm md:text-base font-medium">Administra los perfiles completos de los alumnos.</p>
                 </div>
                 {isAdmin && (
                     <button onClick={() => handleOpenModal()} className="btn btn-primary">
@@ -236,14 +236,14 @@ export const StudentsManager = () => {
                                         <div className="flex justify-start gap-6">
                                             <button
                                                 onClick={() => generateCertificate(s)}
-                                                className={`btn btn-ghost text-emerald-600 hover:bg-emerald-50 w-16 h-16 p-0 flex items-center justify-center rounded-2xl transition-all shadow-sm border border-emerald-100 ${generatingCert === s.id ? 'animate-pulse' : ''}`}
+                                                className={`btn btn-ghost text-emerald-600 hover:bg-emerald-50 w-12 h-12 md:w-16 md:h-16 p-0 flex items-center justify-center rounded-2xl transition-all shadow-sm border border-emerald-100 ${generatingCert === s.id ? 'animate-pulse' : ''}`}
                                                 title="Generar Certificado"
                                                 disabled={generatingCert === s.id}
                                             >
                                                 {generatingCert === s.id ? (
-                                                    <span className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></span>
+                                                    <span className="w-8 h-8 md:w-12 md:h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></span>
                                                 ) : (
-                                                    <span className="material-symbols-outlined !text-5xl">description</span>
+                                                    <span className="material-symbols-outlined !text-3xl md:!text-5xl">description</span>
                                                 )}
                                             </button>
 
@@ -251,26 +251,26 @@ export const StudentsManager = () => {
                                                 <>
                                                     <button
                                                         onClick={() => handleOpenModal(s)}
-                                                        className="btn btn-ghost text-blue-600 hover:bg-blue-50 w-16 h-16 p-0 flex items-center justify-center rounded-2xl transition-all shadow-sm border border-blue-100"
+                                                        className="btn btn-ghost text-blue-600 hover:bg-blue-50 w-12 h-12 md:w-16 md:h-16 p-0 flex items-center justify-center rounded-2xl transition-all shadow-sm border border-blue-100"
                                                         title="Editar"
                                                     >
-                                                        <span className="material-symbols-outlined !text-5xl">edit</span>
+                                                        <span className="material-symbols-outlined !text-3xl md:!text-5xl">edit</span>
                                                     </button>
                                                     <button
                                                         onClick={async () => { if (confirm('¿Eliminar estudiante?')) { await supabase.from('estudiantes').delete().eq('id', s.id); loadData(); } }}
-                                                        className="btn btn-ghost text-rose-600 hover:bg-rose-50 w-16 h-16 p-0 flex items-center justify-center rounded-2xl transition-all shadow-sm border border-rose-100"
+                                                        className="btn btn-ghost text-rose-600 hover:bg-rose-50 w-12 h-12 md:w-16 md:h-16 p-0 flex items-center justify-center rounded-2xl transition-all shadow-sm border border-rose-100"
                                                         title="Eliminar"
                                                     >
-                                                        <span className="material-symbols-outlined !text-5xl">delete</span>
+                                                        <span className="material-symbols-outlined !text-3xl md:!text-5xl">delete</span>
                                                     </button>
                                                 </>
                                             ) : (
                                                 <>
-                                                    <div className="w-16 h-16 flex items-center justify-center opacity-20 cursor-not-allowed bg-slate-100 rounded-2xl border border-slate-200" title="Sin permisos de edición">
-                                                        <span className="material-symbols-outlined !text-5xl">edit</span>
+                                                    <div className="w-12 h-12 md:w-16 md:h-16 flex items-center justify-center opacity-20 cursor-not-allowed bg-slate-100 rounded-2xl border border-slate-200" title="Sin permisos de edición">
+                                                        <span className="material-symbols-outlined !text-3xl md:!text-5xl">edit</span>
                                                     </div>
-                                                    <div className="w-16 h-16 flex items-center justify-center opacity-20 cursor-not-allowed bg-slate-100 rounded-2xl border border-slate-200" title="Sin permisos para eliminar">
-                                                        <span className="material-symbols-outlined !text-5xl">delete</span>
+                                                    <div className="w-12 h-12 md:w-16 md:h-16 flex items-center justify-center opacity-20 cursor-not-allowed bg-slate-100 rounded-2xl border border-slate-200" title="Sin permisos para eliminar">
+                                                        <span className="material-symbols-outlined !text-3xl md:!text-5xl">delete</span>
                                                     </div>
                                                 </>
                                             )}

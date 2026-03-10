@@ -174,7 +174,7 @@ body {
   padding: 1rem 1.4rem;
   border: 1.5px solid var(--border);
   border-radius: 0.8rem;
-  font-size: 2.0rem;
+  font-size: 1.4rem;
   font-family: 'Inter', sans-serif;
   color: var(--text-main);
   background: white;
@@ -450,7 +450,7 @@ input[type=number] {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: fixed;
   top: 0;
   left: 0;
@@ -739,8 +739,12 @@ input[type=number] {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
   z-index: 49;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
 }
 
 .menu-btn {
@@ -758,6 +762,8 @@ input[type=number] {
 
   .sidebar-overlay.show {
     display: block;
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .main-content {

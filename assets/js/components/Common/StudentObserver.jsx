@@ -214,8 +214,8 @@ export const StudentObserver = () => {
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-3xl font-black text-slate-800">Observador del Alumno</h2>
-                    <p className="text-2xl font-medium text-sm">Registro masivo de fortalezas, debilidades y estrategias.</p>
+                    <h2 className="text-xl md:text-3xl font-black text-slate-800">Observador del Alumno</h2>
+                    <p className="text-sm md:text-base font-medium text-slate-500">Registro masivo de fortalezas, debilidades y estrategias.</p>
                 </div>
                 {selectedCourse && (
                     <button
@@ -233,7 +233,7 @@ export const StudentObserver = () => {
 
             <div className="card grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="form-group">
-                    <label className="form-label text-2xl text-blue-600 uppercase tracking-wider">Curso</label>
+                    <label className="form-label text-xs md:text-base text-blue-600 uppercase tracking-wider">Curso</label>
                     <select
                         className="form-input"
                         value={selectedCourse}
@@ -244,7 +244,7 @@ export const StudentObserver = () => {
                     </select>
                 </div>
                 <div className="form-group">
-                    <label className="form-label text-2xl text-blue-600 uppercase tracking-wider">Periodo</label>
+                    <label className="form-label text-xs md:text-base text-blue-600 uppercase tracking-wider">Periodo</label>
                     <select
                         className="form-input"
                         value={periodo}
@@ -272,42 +272,42 @@ export const StudentObserver = () => {
                                     <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm">
                                         {index + 1}
                                     </span>
-                                    <h3 className="font-bold text-slate-800 uppercase text-3xl">
+                                    <h3 className="font-bold text-slate-800 uppercase text-base md:text-xl">
                                         {student.apellidos} {student.nombres}
                                     </h3>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                     <div className="form-group">
-                                        <label className="text-3xl font-bold text-blue-600 uppercase mb-1 block">Fortalezas</label>
+                                        <label className="text-[10px] md:text-xs font-bold text-blue-600 uppercase mb-1 block">Fortalezas</label>
                                         <textarea
-                                            className="form-input text-3xl min-h-[80px] resize-none"
+                                            className="form-input text-sm md:text-base min-h-[80px] resize-none"
                                             value={observations[student.id]?.fortalezas || ''}
                                             onChange={e => handleInputChange(student.id, 'fortalezas', e.target.value)}
                                             placeholder="Describa fortalezas..."
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label className="text-3xl font-bold text-blue-600 uppercase mb-1 block">Debilidades</label>
+                                        <label className="text-[10px] md:text-xs font-bold text-blue-600 uppercase mb-1 block">Debilidades</label>
                                         <textarea
-                                            className="form-input text-3xl min-h-[80px] resize-none"
+                                            className="form-input text-sm md:text-base min-h-[80px] resize-none"
                                             value={observations[student.id]?.debilidades || ''}
                                             onChange={e => handleInputChange(student.id, 'debilidades', e.target.value)}
                                             placeholder="Describa debilidades..."
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label className="text-3xl font-bold text-blue-600 uppercase mb-1 block">Estrategias</label>
+                                        <label className="text-[10px] md:text-xs font-bold text-blue-600 uppercase mb-1 block">Estrategias</label>
                                         <textarea
-                                            className="form-input text-3xl min-h-[80px] resize-none"
+                                            className="form-input text-sm md:text-base min-h-[80px] resize-none"
                                             value={observations[student.id]?.estrategias || ''}
                                             onChange={e => handleInputChange(student.id, 'estrategias', e.target.value)}
                                             placeholder="Describa estrategias..."
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label className="text-3xl font-bold text-blue-600 uppercase mb-1 block">Observaciones</label>
+                                        <label className="text-[10px] md:text-xs font-bold text-blue-600 uppercase mb-1 block">Observaciones</label>
                                         <textarea
-                                            className="form-input text-3xl min-h-[80px] resize-none"
+                                            className="form-input text-sm md:text-base min-h-[80px] resize-none"
                                             value={observations[student.id]?.observaciones || ''}
                                             onChange={e => handleInputChange(student.id, 'observaciones', e.target.value)}
                                             placeholder="Observaciones generales..."
