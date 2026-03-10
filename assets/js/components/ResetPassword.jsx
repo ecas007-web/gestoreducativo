@@ -35,7 +35,7 @@ const ResetPassword = () => {
             <div className="login-container animate-scaleIn max-w-md min-h-0 py-10">
                 <div className="w-full px-10">
                     <div className="mb-6 flex justify-center flex-col items-center">
-                        <img src="/images/escudo.png" alt="Logo" className="w-32 h-32 object-contain mb-4" />
+                        <img src="/public/images/escudo.png" alt="Logo" className="w-32 h-32 object-contain mb-4" />
                         <h1 className="text-2xl font-black text-slate-800 text-center">{SCHOOL_NAME}</h1>
                     </div>
 
