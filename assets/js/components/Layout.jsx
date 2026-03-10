@@ -5,7 +5,7 @@ import { useNavigationGuard } from '../context/NavigationContext.jsx';
 import { SCHOOL_NAME, supabase } from '../config.jsx';
 
 export const Layout = ({ children, roleTitle, navigation }) => {
-    const { profile } = useAuth();
+    const { profile, signOut } = useAuth();
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const { isDirty, showConfirmModal, attemptNavigation, confirmNavigation, cancelNavigation } = useNavigationGuard();
@@ -15,7 +15,7 @@ export const Layout = ({ children, roleTitle, navigation }) => {
 
     const cerrarSesion = async () => {
         attemptNavigation(async () => {
-            await supabase.auth.signOut();
+            await signOut();
             window.location.href = '/login';
         });
     };

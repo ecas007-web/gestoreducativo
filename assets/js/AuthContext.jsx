@@ -57,8 +57,41 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const signOut = async () => {
+        const { error } = await supabase.auth.signOut();
+        if (error) console.error("Error signing out:", error);
+    };
+
+    useEffect(() => {
+        let timer;
+        const INACTIVITY_LIMIT = 30 * 60 * 1000; // 30 minutos
+
+        const resetTimer = () => {
+            if (timer) clearTimeout(timer);
+            if (session) {
+                timer = setTimeout(() => {
+                    console.log("Cierre de sesión por inactividad");
+                    signOut();
+                }, INACTIVITY_LIMIT);
+            }
+        };
+
+        if (session) {
+            // Eventos que reinician el contador
+            const events = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+            events.forEach(event => window.addEventListener(event, resetTimer));
+
+            resetTimer(); // Llamada inicial
+
+            return () => {
+                if (timer) clearTimeout(timer);
+                events.forEach(event => window.removeEventListener(event, resetTimer));
+            };
+        }
+    }, [session]);
+
     return (
-        <AuthContext.Provider value={{ session, profile, loading, setProfile }}>
+        <AuthContext.Provider value={{ session, profile, loading, setProfile, signOut }}>
             {children}
         </AuthContext.Provider>
     );
