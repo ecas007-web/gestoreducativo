@@ -21,6 +21,7 @@ import { ScaleSettings } from './components/Admin/ScaleSettings.jsx';
 import { AchievementSettings } from './components/Admin/AchievementSettings.jsx';
 import { BehaviorManagement } from './components/Admin/BehaviorManagement.jsx';
 import { ActivitiesManager } from './components/Admin/ActivitiesManager.jsx';
+import { PeriodManager } from './components/Admin/PeriodManager.jsx';
 
 // Teacher Components
 import { TeacherDashboard } from './components/Teacher/Dashboard.jsx';
@@ -71,6 +72,7 @@ const App = () => {
             title: 'Académico',
             links: [
                 { path: '/admin/anios-academicos', icon: 'event', label: 'Años Académicos' },
+                { path: '/admin/periodos', icon: 'lock_open_right', label: 'Gestión de Periodos' },
                 { path: '/admin/escalas', icon: 'grade', label: 'Escala Valorativa' },
                 { path: '/admin/logros', icon: 'emoji_events', label: 'Logros Generales' },
                 { path: '/admin/comportamiento', icon: 'psychology', label: 'Comportamiento' },
@@ -141,6 +143,7 @@ const App = () => {
                                         <Route path="estudiantes" element={<StudentsManager />} />
                                         <Route path="docentes" element={<TeachersManager />} />
                                         <Route path="anios-academicos" element={<AcademicYearsManager />} />
+                                        <Route path="periodos" element={<PeriodManager />} />
                                         <Route path="escalas" element={<ScaleSettings />} />
                                         <Route path="logros" element={<AchievementSettings />} />
                                         <Route path="comportamiento" element={<BehaviorManagement />} />

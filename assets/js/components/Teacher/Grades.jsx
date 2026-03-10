@@ -19,6 +19,7 @@ export const TeacherGrades = () => {
     const [scales, setScales] = useState([]);
     const [achievement, setAchievement] = useState(null);
     const [activities, setActivities] = useState([]);
+    const [periodosEstado, setPeriodosEstado] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const [localNotas, setLocalNotas] = useState({});
@@ -84,6 +85,13 @@ export const TeacherGrades = () => {
 
     const saveGrade = async (estId, data, silent = false) => {
         if (!activeYear) return mostrarToast('No hay año académico activo', 'error');
+
+        const isPeriodoAbierto = periodosEstado.find(p => p.periodo === periodo)?.estado !== false;
+        if (!isPeriodoAbierto) {
+            if (!silent) mostrarToast(`El periodo ${periodo} se encuentra CERRADO. No se pueden realizar cambios.`, 'error');
+            return false;
+        }
+
         try {
             const { data: existe } = await supabase.from('calificaciones').select('id')
                 .match({ estudiante_id: estId, materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id })
@@ -168,13 +176,20 @@ export const TeacherGrades = () => {
                 supabase.from('curso_materias').select('materias(id, nombre)').eq('curso_id', cursoId),
                 supabase.from('estudiantes').select('*').eq('curso_id', cursoId).order('apellidos'),
                 supabase.from('anios_academicos').select('*').eq('estado', true).maybeSingle(),
-                supabase.from('escalas_valorativas').select('*').order('rango_minimo', { ascending: true })
+                supabase.from('escalas_valorativas').select('*').order('rango_minimo', { ascending: true }),
+                supabase.from('periodos_estado').select('*').order('periodo', { ascending: true })
             ]);
             setCurso(cRes.data);
             setSubjects(mRes.data?.map(m => m.materias) || []);
             setStudents(sRes.data || []);
             setActiveYear(yRes.data);
             setScales(scalesRes.data || []);
+
+            // Filtrar estados de periodos para el año activo si existe
+            if (yRes.data) {
+                const { data: pData } = await supabase.from('periodos_estado').select('*').eq('anio_academico_id', yRes.data.id);
+                setPeriodosEstado(pData || []);
+            }
         } catch (err) {
             console.error(err);
         } finally {
@@ -245,13 +260,15 @@ export const TeacherGrades = () => {
                         {selectedMateria && filteredStudents.length > 0 && (
                             <button
                                 onClick={handleSaveAll}
-                                disabled={savingBulk || !hasChanges}
-                                className={`btn h-12 px-6 flex items-center gap-2 shadow-lg transition-all ${!hasChanges ? 'bg-slate-100 text-slate-400 border-slate-200' : 'btn-primary shadow-blue-200 animate-fadeIn'}`}
+                                disabled={savingBulk || !hasChanges || periodosEstado.find(p => p.periodo === periodo)?.estado === false}
+                                className={`btn h-12 px-6 flex items-center gap-2 shadow-lg transition-all ${!hasChanges || periodosEstado.find(p => p.periodo === periodo)?.estado === false ? 'bg-slate-100 text-slate-400 border-slate-200' : 'btn-primary shadow-blue-200 animate-fadeIn'}`}
                             >
                                 <span className={`material-symbols-outlined ${savingBulk ? 'animate-spin' : ''}`}>
                                     {savingBulk ? 'sync' : 'done_all'}
                                 </span>
-                                <span className="font-bold">{savingBulk ? 'guardando...' : 'guardar todo'}</span>
+                                <span className="font-bold">
+                                    {savingBulk ? 'guardando...' : (periodosEstado.find(p => p.periodo === periodo)?.estado === false ? 'periodo cerrado' : 'guardar todo')}
+                                </span>
                             </button>
                         )}
                     </div>
@@ -326,6 +343,7 @@ export const TeacherGrades = () => {
                                     }}
                                     onSave={() => saveGrade(s.id, localNotas[s.id])}
                                     activities={activities}
+                                    isClosed={periodosEstado.find(p => p.periodo === periodo)?.estado === false}
                                 />
                             )) : (
                                 <tr><td colSpan="16" className="text-center py-20 text-slate-400 font-medium">Selecciona una materia para cargar el listado.</td></tr>
@@ -339,7 +357,7 @@ export const TeacherGrades = () => {
 };
 
 
-const GradeRow = ({ student, data, scales, globalAchievement, onChange, onSave, activities }) => {
+const GradeRow = ({ student, data, scales, globalAchievement, onChange, onSave, activities, isClosed }) => {
     const defaultData = {
         tc1: '', tc2: '', tc3: '', tc4: '',
         th1: '', th2: '', th3: '', th4: '',
@@ -408,22 +426,22 @@ const GradeRow = ({ student, data, scales, globalAchievement, onChange, onSave, 
             </td>
 
             {/* Tareas Clase */}
-            <GradeCell value={row.tc1} onChange={v => handleInput('tc1', v)} className="bg-blue-50/10" title={getActDesc('TC1')} />
-            <GradeCell value={row.tc2} onChange={v => handleInput('tc2', v)} className="bg-blue-50/10" title={getActDesc('TC2')} />
-            <GradeCell value={row.tc3} onChange={v => handleInput('tc3', v)} className="bg-blue-50/10" title={getActDesc('TC3')} />
-            <GradeCell value={row.tc4} onChange={v => handleInput('tc4', v)} className="bg-blue-50/10" title={getActDesc('TC4')} />
+            <GradeCell value={row.tc1} onChange={v => handleInput('tc1', v)} className="bg-blue-50/10" title={getActDesc('TC1')} disabled={isClosed} />
+            <GradeCell value={row.tc2} onChange={v => handleInput('tc2', v)} className="bg-blue-50/10" title={getActDesc('TC2')} disabled={isClosed} />
+            <GradeCell value={row.tc3} onChange={v => handleInput('tc3', v)} className="bg-blue-50/10" title={getActDesc('TC3')} disabled={isClosed} />
+            <GradeCell value={row.tc4} onChange={v => handleInput('tc4', v)} className="bg-blue-50/10" title={getActDesc('TC4')} disabled={isClosed} />
             <td className="text-center bg-blue-100/30 font-black text-slate-900 border-r">{calc.tcAvg}</td>
 
             {/* Tareas Casa */}
-            <GradeCell value={row.th1} onChange={v => handleInput('th1', v)} className="bg-emerald-50/10" title={getActDesc('TH1')} />
-            <GradeCell value={row.th2} onChange={v => handleInput('th2', v)} className="bg-emerald-50/10" title={getActDesc('TH2')} />
-            <GradeCell value={row.th3} onChange={v => handleInput('th3', v)} className="bg-emerald-50/10" title={getActDesc('TH3')} />
-            <GradeCell value={row.th4} onChange={v => handleInput('th4', v)} className="bg-emerald-50/10" title={getActDesc('TH4')} />
+            <GradeCell value={row.th1} onChange={v => handleInput('th1', v)} className="bg-emerald-50/10" title={getActDesc('TH1')} disabled={isClosed} />
+            <GradeCell value={row.th2} onChange={v => handleInput('th2', v)} className="bg-emerald-50/10" title={getActDesc('TH2')} disabled={isClosed} />
+            <GradeCell value={row.th3} onChange={v => handleInput('th3', v)} className="bg-emerald-50/10" title={getActDesc('TH3')} disabled={isClosed} />
+            <GradeCell value={row.th4} onChange={v => handleInput('th4', v)} className="bg-emerald-50/10" title={getActDesc('TH4')} disabled={isClosed} />
             <td className="text-center bg-slate-100 font-black text-slate-900 border-r">{calc.thAvg}</td>
 
             {/* Cuaderno y Examen */}
-            <GradeCell value={row.cuaderno} onChange={v => handleInput('cuaderno', v)} className="bg-amber-50/10 border-r" />
-            <GradeCell value={row.examen} onChange={v => handleInput('examen', v)} className="bg-violet-50/10 border-r" />
+            <GradeCell value={row.cuaderno} onChange={v => handleInput('cuaderno', v)} className="bg-amber-50/10 border-r" disabled={isClosed} />
+            <GradeCell value={row.examen} onChange={v => handleInput('examen', v)} className="bg-violet-50/10 border-r" disabled={isClosed} />
 
             {/* Nota Final */}
             <td className="text-center bg-slate-100 font-black text-xl text-slate-900 border-r">
@@ -450,21 +468,26 @@ const GradeRow = ({ student, data, scales, globalAchievement, onChange, onSave, 
             </td>
 
             <td className="text-center p-2">
-                <button onClick={onSave} className="btn btn-primary btn-sm w-full h-10 flex items-center justify-center p-0 rounded-xl">
-                    <span className="material-symbols-outlined text-lg">save</span>
+                <button
+                    onClick={onSave}
+                    disabled={isClosed}
+                    className={`btn btn-sm w-full h-10 flex items-center justify-center p-0 rounded-xl ${isClosed ? 'bg-slate-100 text-slate-300 pointer-events-none' : 'btn-primary'}`}
+                >
+                    <span className="material-symbols-outlined text-lg">{isClosed ? 'lock' : 'save'}</span>
                 </button>
             </td>
         </tr>
     );
 };
 
-const GradeCell = ({ value, onChange, className = '', title = '' }) => (
-    <td className={`p-0 border-r relative ${className}`} title={title}>
+const GradeCell = ({ value, onChange, className = '', title = '', disabled }) => (
+    <td className={`p-0 border-r relative ${className} ${disabled ? 'bg-slate-50' : ''}`} title={title}>
         <input
             type="number" step="0.1"
-            className="w-full h-10 text-center bg-transparent border-none focus:ring-2 focus:ring-blue-400 rounded-lg font-bold text-slate-700 p-0"
+            className={`w-full h-10 text-center bg-transparent border-none focus:ring-2 focus:ring-blue-400 rounded-lg font-bold text-slate-700 p-0 ${disabled ? 'cursor-not-allowed text-slate-400' : ''}`}
             value={value || ''}
             onChange={e => onChange(e.target.value)}
+            disabled={disabled}
             placeholder="-"
             title={title}
         />
