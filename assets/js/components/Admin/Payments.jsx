@@ -172,7 +172,10 @@ export const PaymentsManager = () => {
             // También cargamos el historial de pagos con filtros
             let query = supabase
                 .from('pagos')
-                .select('id, monto, fecha_pago, metodo_pago, mes, observacion, estudiante_id, estudiantes(nombres, apellidos)')
+                .select(`
+                    id, monto, fecha_pago, metodo_pago, mes, observacion, estudiante_id, created_at, registrado_por,
+                    estudiantes(nombres, apellidos)
+                `)
                 .order('created_at', { ascending: false });
 
             if (anioHistorial) {
@@ -183,7 +186,33 @@ export const PaymentsManager = () => {
             }
 
             const { data: todosPagos } = await query;
-            setPagosRecientes(todosPagos || []);
+
+            // Si hay pagos, resolvemos los nombres de los registradores manualmente
+            if (todosPagos && todosPagos.length > 0) {
+                const registradoresIds = [...new Set(todosPagos.map(p => p.registrado_por).filter(Boolean))];
+                if (registradoresIds.length > 0) {
+                    const { data: profilesData } = await supabase
+                        .from('profiles')
+                        .select('id, nombres, apellidos')
+                        .in('id', registradoresIds);
+
+                    const profilesMap = (profilesData || []).reduce((acc, curr) => {
+                        acc[curr.id] = curr;
+                        return acc;
+                    }, {});
+
+                    // Enriquecer pagos con la info del perfil
+                    const pagosEnriquecidos = todosPagos.map(p => ({
+                        ...p,
+                        perfil_registrador: profilesMap[p.registrado_por] || null
+                    }));
+                    setPagosRecientes(pagosEnriquecidos);
+                } else {
+                    setPagosRecientes(todosPagos);
+                }
+            } else {
+                setPagosRecientes([]);
+            }
         } catch (err) {
             mostrarToast('Error al generar reportes: ' + err.message, 'error');
         } finally {
@@ -597,10 +626,11 @@ export const PaymentsManager = () => {
                         <table className="data-table">
                             <thead>
                                 <tr>
-                                    <th>Fecha y Método</th>
                                     <th>Estudiante</th>
+                                    <th>Fecha y Método</th>
                                     <th>Mes Pagado</th>
                                     <th>Monto</th>
+                                    <th>Registro</th>
                                     <th>Obs.</th>
                                     <th className="text-right">Acciones</th>
                                 </tr>
@@ -621,6 +651,9 @@ export const PaymentsManager = () => {
                                     return filtrados.map(p => (
                                         <tr key={p.id}>
                                             <td>
+                                                <div className="font-bold text-slate-800 text-xl">{p.estudiantes?.nombres} {p.estudiantes?.apellidos}</div>
+                                            </td>
+                                            <td>
                                                 <div className="text-sm font-medium text-slate-700">{p.fecha_pago}</div>
                                                 <div className="text-xs capitalize flex items-center gap-1 text-slate-500 mt-1">
                                                     <span className="material-symbols-outlined text-[14px]">{p.metodo_pago === 'efectivo' ? 'payments' : 'account_balance'}</span>
@@ -628,15 +661,24 @@ export const PaymentsManager = () => {
                                                 </div>
                                             </td>
                                             <td>
-                                                <div className="font-bold text-slate-800">{p.estudiantes?.nombres} {p.estudiantes?.apellidos}</div>
-                                            </td>
-                                            <td>
                                                 <span className="badge badge-primary">{MESES.find(m => m.id === p.mes)?.label}</span>
                                             </td>
                                             <td>
                                                 <div className="font-bold text-emerald-600">${Number(p.monto).toLocaleString()}</div>
                                             </td>
-                                            <td className="text-slate-500 text-sm max-w-[200px] truncate">{p.observacion || '-'}</td>
+                                            <td>
+                                                <div className="text-xs font-bold text-slate-800 uppercase tracking-tighter">{p.perfil_registrador ? `${p.perfil_registrador.nombres} ${p.perfil_registrador.apellidos}` : (p.registrado_por ? 'Usuario' : 'Admin')}</div>
+                                                <div className="text-xs text-slate-800">
+                                                    {p.created_at ? new Date(p.created_at).toLocaleString('es-CO', {
+                                                        day: '2-digit',
+                                                        month: '2-digit',
+                                                        year: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    }) : '-'}
+                                                </div>
+                                            </td>
+                                            <td className="text-slate-500 text-xs max-w-[150px] truncate">{p.observacion || '-'}</td>
                                             <td className="text-right">
                                                 <div className="flex justify-end gap-1">
                                                     <button onClick={() => handleEditPago(p)} className="btn btn-ghost btn-sm text-blue-600 p-1" title="Editar Pago">
