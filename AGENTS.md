@@ -206,6 +206,15 @@ Modulo de Observador del alumno
     Este modulo es gestionado por el docente o administrador y debe permitir la creación y edición de la información
     Debe tener filtros por: curso . periodo, estudiante
 
+Modulo de cierre de periodo
+    •	En este modulo se podrá gestionar el estado de los periodos (abierto, cerrado) solo por el adminstrador
+    •	Ya sabemos que manejamos 4 periodos 
+    •	Se pueden tener varios periodos abiertos al tiempo
+    •	Cuando el periodo esta cerrado si el docente intenta subir calificaciones,  para ese periodo le debe salir un pop-up que indica que el perido esta cerrado
+    •	En el modulo de logros generales Tampoco se podrá agregar ni editar logros de un periodo cerrado
+    •	En el modulo de comportamiento Tampoco se podrá editar los registros  de un periodo cerrado
+
+
 
 
 •	Funcionalidades de la app

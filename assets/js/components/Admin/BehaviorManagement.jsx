@@ -179,7 +179,7 @@ export const BehaviorManagement = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-slate-800">Módulo de Comportamiento</h2>
-                    <p className="text-slate-500">Gestiona la escala valorativa y descripción conductual por periodo.</p>
+                    <p className="text-slate-500">Gestiona el comportamiento y descripción conductual por periodo.</p>
                 </div>
                 {activeYear && (
                     <div className="badge badge-primary py-3 px-4 h-auto flex flex-col items-end">
@@ -260,7 +260,7 @@ export const BehaviorManagement = () => {
                                             </td>
                                             <td className="py-4 px-6 min-w-[300px]">
                                                 <textarea
-                                                    className={`form-input text-sm min-h-[80px] resize-y ${periodosEstado.find(p => p.periodo === filterPeriod)?.estado === false ? 'bg-slate-50 cursor-not-allowed opacity-60' : ''}`}
+                                                    className={`form-input text-2xl min-h-[80px] resize-y ${periodosEstado.find(p => p.periodo === filterPeriod)?.estado === false ? 'bg-slate-50 cursor-not-allowed opacity-60' : ''}`}
                                                     placeholder="Ej: El estudiante demuestra un comportamiento ejemplar..."
                                                     value={behaviors[student.id]?.descripcion || ''}
                                                     onChange={(e) => handleBehaviorChange(student.id, 'descripcion', e.target.value)}

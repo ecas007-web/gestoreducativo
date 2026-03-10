@@ -18,8 +18,17 @@ export const AuthProvider = ({ children }) => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             setSession(session);
             if (session) {
-                setLoading(true);
-                fetchProfile(session.user.id);
+                // Al refrescar el token (ej. al volver a la pestaña), si ya tenemos el perfil del mismo usuario,
+                // no bloqueamos la UI con setLoading(true). Actualizamos en segundo plano si es necesario.
+                setProfile(prevProfile => {
+                    if (!prevProfile || prevProfile.id !== session.user.id) {
+                        fetchProfile(session.user.id, true);
+                    } else {
+                        // Refresco silencioso opcional, sin bloquear UI
+                        fetchProfile(session.user.id, false);
+                    }
+                    return prevProfile;
+                });
             } else {
                 setProfile(null);
                 setLoading(false);
@@ -29,8 +38,8 @@ export const AuthProvider = ({ children }) => {
         return () => subscription.unsubscribe();
     }, []);
 
-    const fetchProfile = async (userId) => {
-        setLoading(true);
+    const fetchProfile = async (userId, showLoading = true) => {
+        if (showLoading) setLoading(true);
         try {
             const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
             if (data) {
@@ -53,7 +62,7 @@ export const AuthProvider = ({ children }) => {
         } catch (err) {
             console.error("Error fetching profile:", err);
         } finally {
-            setLoading(false);
+            if (showLoading) setLoading(false);
         }
     };
 
