@@ -154,22 +154,22 @@ export const ActivitiesManager = () => {
             <div className="card p-0 overflow-hidden">
                 <div className="flex flex-wrap gap-4 p-4 bg-slate-50 border-b items-end">
                     <div className="form-group mb-0 min-w-[180px]">
-                        <label className="text-[10px] uppercase font-bold text-blue-600 mb-1 block">Filtrar por Curso</label>
-                        <select className="form-input !py-2 text-2xl" value={filterCurso} onChange={e => setFilterCurso(e.target.value)}>
+                        <label className="text-[10px] md:text-xs uppercase font-bold text-blue-600 mb-1 block">Filtrar por Curso</label>
+                        <select className="form-input !py-2 text-sm md:text-base" value={filterCurso} onChange={e => setFilterCurso(e.target.value)}>
                             <option value="">Todos los Cursos</option>
                             {courses.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                         </select>
                     </div>
                     <div className="form-group mb-0 min-w-[180px]">
-                        <label className="text-[10px] uppercase font-bold text-blue-600 mb-1 block">Filtrar por Materia</label>
-                        <select className="form-input !py-2 text-2xl" value={filterMateria} onChange={e => setFilterMateria(e.target.value)}>
+                        <label className="text-[10px] md:text-xs uppercase font-bold text-blue-600 mb-1 block">Filtrar por Materia</label>
+                        <select className="form-input !py-2 text-sm md:text-base" value={filterMateria} onChange={e => setFilterMateria(e.target.value)}>
                             <option value="">Todas las Materias</option>
                             {subjects.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
                         </select>
                     </div>
                     <div className="form-group mb-0 min-w-[180px]">
-                        <label className="text-[10px] uppercase font-bold text-blue-600 mb-1 block">Filtrar por Periodo</label>
-                        <select className="form-input !py-2 text-2xl" value={filterPeriodo} onChange={e => setFilterPeriodo(e.target.value)}>
+                        <label className="text-[10px] md:text-xs uppercase font-bold text-blue-600 mb-1 block">Filtrar por Periodo</label>
+                        <select className="form-input !py-2 text-sm md:text-base" value={filterPeriodo} onChange={e => setFilterPeriodo(e.target.value)}>
                             <option value="">Todos los Periodos</option>
                             <option value="P1">Periodo 1</option><option value="P2">Periodo 2</option>
                             <option value="P3">Periodo 3</option><option value="P4">Periodo 4</option>

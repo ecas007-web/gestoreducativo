@@ -7,7 +7,7 @@ import { SCHOOL_NAME, supabase } from '../config.jsx';
 export const Layout = ({ children, roleTitle, navigation }) => {
     const { profile, signOut } = useAuth();
     const location = useLocation();
-    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 1024);
     const { isDirty, showConfirmModal, attemptNavigation, confirmNavigation, cancelNavigation } = useNavigationGuard();
 
     const nombre = `${profile?.nombres || ''} ${profile?.apellidos || ''}`.trim() || profile?.correo || 'Usuario';
@@ -43,6 +43,9 @@ export const Layout = ({ children, roleTitle, navigation }) => {
                                     key={link.path}
                                     to={link.path}
                                     onClick={(e) => {
+                                        if (window.innerWidth <= 1024) {
+                                            setSidebarOpen(false);
+                                        }
                                         if (location.pathname.startsWith(link.path)) return;
                                         if (isDirty) {
                                             e.preventDefault();
@@ -93,6 +96,14 @@ export const Layout = ({ children, roleTitle, navigation }) => {
                     {children}
                 </main>
             </div>
+
+            {/* Sidebar Overlay para Móviles (Solo se muestra en pantallas pequeñas) */}
+            {sidebarOpen && window.innerWidth <= 1024 && (
+                <div
+                    className="sidebar-overlay show"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
 
             {/* Modal Global de Confirmación de Navegación */}
             {showConfirmModal && (
