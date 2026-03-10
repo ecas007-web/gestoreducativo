@@ -11,8 +11,10 @@ export const AchievementSettings = () => {
     const [subjects, setSubjects] = useState([]);
     const [achievements, setAchievements] = useState([]);
     const [periodosEstado, setPeriodosEstado] = useState([]);
-
     const [loading, setLoading] = useState(true);
+
+    const [isSaving, setIsSaving] = useState(false);
+    const [expandedLogroId, setExpandedLogroId] = useState(null);
     const [modal, setModal] = useState({ open: false, data: null });
     const [formData, setFormData] = useState({ curso_id: '', materia_id: '', periodo: 'P1', logro: '' });
 
@@ -231,7 +233,15 @@ export const AchievementSettings = () => {
                                     <td className="font-bold text-slate-800">{item.cursos?.nombre}</td>
                                     <td className="text-slate-600 font-medium">{item.materias?.nombre}</td>
                                     <td><span className="badge badge-primary">{item.periodo}</span></td>
-                                    <td className="text-slate-500 text-sm italic max-w-md truncate">{item.logro}</td>
+                                    <td
+                                        className="text-slate-500 text-sm italic max-w-md cursor-pointer group"
+                                        onClick={() => setExpandedLogroId(expandedLogroId === item.id ? null : item.id)}
+                                        title="Haz clic para ver el texto completo"
+                                    >
+                                        <div className={`transition-all duration-200 ${expandedLogroId === item.id ? 'whitespace-normal bg-slate-100 p-2 rounded-md shadow-inner text-slate-700' : 'truncate group-hover:text-blue-600'}`}>
+                                            {item.logro}
+                                        </div>
+                                    </td>
                                     <td className="text-right">
                                         <button
                                             onClick={() => openModal(item)}
@@ -311,7 +321,7 @@ export const AchievementSettings = () => {
                                 <div className="form-group">
                                     <label className="form-label font-bold text-slate-700">Logro General (Sin verbo de inicio)</label>
                                     <textarea
-                                        className="form-input min-h-[180px] resize-y text-base leading-relaxed" required
+                                        className="form-input min-h-[180px] resize-y text-2xl leading-relaxed" required
                                         placeholder="Ej: las operaciones básicas de matemáticas y su aplicación en problemas cotidianos."
                                         value={formData.logro}
                                         onChange={e => setFormData({ ...formData, logro: e.target.value })}
