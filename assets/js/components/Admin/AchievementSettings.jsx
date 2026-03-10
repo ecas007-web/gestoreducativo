@@ -160,9 +160,9 @@ export const AchievementSettings = () => {
                 {/* Filter Bar */}
                 <div className="flex flex-wrap gap-4 p-4 bg-slate-50 border-b items-end">
                     <div className="form-group mb-0 min-w-[180px]">
-                        <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Filtrar por Curso</label>
+                        <label className="text-[12px] uppercase font-bold text-blue-600 mb-1 block">Filtrar por Curso</label>
                         <select
-                            className="form-input !py-2 text-sm"
+                            className="form-input !py-2 text-2xl"
                             value={filterCurso}
                             onChange={e => setFilterCurso(e.target.value)}
                         >
@@ -171,9 +171,9 @@ export const AchievementSettings = () => {
                         </select>
                     </div>
                     <div className="form-group mb-0 min-w-[180px]">
-                        <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Filtrar por Materia</label>
+                        <label className="text-[12px] uppercase font-bold text-blue-600 mb-1 block">Filtrar por Materia</label>
                         <select
-                            className="form-input !py-2 text-sm"
+                            className="form-input !py-2 text-2xl"
                             value={filterMateria}
                             onChange={e => setFilterMateria(e.target.value)}
                         >
@@ -182,9 +182,9 @@ export const AchievementSettings = () => {
                         </select>
                     </div>
                     <div className="form-group mb-0 min-w-[180px]">
-                        <label className="text-[10px] uppercase font-bold text-slate-400 mb-1 block">Filtrar por Periodo</label>
+                        <label className="text-[12px] uppercase font-bold text-blue-600 mb-1 block">Filtrar por Periodo</label>
                         <select
-                            className="form-input !py-2 text-sm"
+                            className="form-input !py-2 text-2xl"
                             value={filterPeriodo}
                             onChange={e => setFilterPeriodo(e.target.value)}
                         >
