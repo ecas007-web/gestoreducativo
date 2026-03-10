@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../config.jsx';
 import { mostrarToast } from '../../utils.jsx';
+import { useAuth } from '../../AuthContext.jsx';
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import { saveAs } from 'file-saver';
 
 export const StudentsManager = () => {
+    const { profile } = useAuth();
+    const isAdmin = profile?.rol === 'admin';
     const [students, setStudents] = useState([]);
     const [courses, setCourses] = useState([]);
     const [years, setYears] = useState([]);
@@ -184,9 +187,11 @@ export const StudentsManager = () => {
                     <h2 className="text-2xl font-black text-slate-800">Gestión de Estudiantes</h2>
                     <p className="text-slate-500">Administra los perfiles completos de los alumnos.</p>
                 </div>
-                <button onClick={() => handleOpenModal()} className="btn btn-primary">
-                    <span className="material-symbols-outlined">person_add</span> Pre-registrar Estudiante
-                </button>
+                {isAdmin && (
+                    <button onClick={() => handleOpenModal()} className="btn btn-primary">
+                        <span className="material-symbols-outlined">person_add</span> Pre-registrar Estudiante
+                    </button>
+                )}
             </div>
 
             <div className="card flex flex-col md:flex-row gap-4 flex-wrap">
@@ -220,10 +225,8 @@ export const StudentsManager = () => {
                                 <th>Contacto</th>
                                 <th>Padre</th>
                                 <th>Madre</th>
-                                <th>Otros</th>
-                                <th>Observaciones</th>
                                 <th>Estado</th>
-                                <th className="text-right sticky right-0 bg-white z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">Acciones</th>
+                                <th className="text-left sticky right-0 bg-white z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)] px-8">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -258,35 +261,54 @@ export const StudentsManager = () => {
                                         <div className="text-slate-400">{s.telefono_madre || s.documento_madre || '-'}</div>
                                         <div className="italic text-[10px]">{s.ocupacion_madre || '-'}</div>
                                     </td>
-                                    <td className="text-xs">
-                                        <div>EPS: {s.eps || 'N/A'}</div>
-                                        <div>Rel: {s.religion || 'N/A'}</div>
-                                    </td>
-                                    <td className="text-xs">
-                                        <div className="max-w-[150px] truncate" title={s.fortalezas}>F: {s.fortalezas || '-'}</div>
-                                        <div className="max-w-[150px] truncate" title={s.debilidades}>D: {s.debilidades || '-'}</div>
-                                    </td>
+
                                     <td>
                                         <span className={`badge ${s.registro_completo ? 'badge-success' : 'badge-warning'}`}>
                                             {s.registro_completo ? 'Completo' : 'Pendiente'}
                                         </span>
                                     </td>
-                                    <td className="text-right sticky right-0 bg-white z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)]">
-                                        <div className="flex justify-end gap-1">
+                                    <td className="text-left sticky right-0 bg-white z-10 shadow-[-2px_0_5px_rgba(0,0,0,0.05)] px-8">
+                                        <div className="flex justify-start gap-6">
                                             <button
                                                 onClick={() => generateCertificate(s)}
-                                                className={`btn btn-ghost btn-sm text-emerald-600 p-1 ${generatingCert === s.id ? 'animate-pulse' : ''}`}
+                                                className={`btn btn-ghost text-emerald-600 hover:bg-emerald-50 w-16 h-16 p-0 flex items-center justify-center rounded-2xl transition-all shadow-sm border border-emerald-100 ${generatingCert === s.id ? 'animate-pulse' : ''}`}
                                                 title="Generar Certificado"
                                                 disabled={generatingCert === s.id}
                                             >
                                                 {generatingCert === s.id ? (
-                                                    <span className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></span>
+                                                    <span className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></span>
                                                 ) : (
-                                                    <span className="material-symbols-outlined !text-lg">description</span>
+                                                    <span className="material-symbols-outlined !text-5xl">description</span>
                                                 )}
                                             </button>
-                                            <button onClick={() => handleOpenModal(s)} className="btn btn-ghost btn-sm text-blue-600 p-1"><span className="material-symbols-outlined !text-lg">edit</span></button>
-                                            <button onClick={async () => { if (confirm('¿Eliminar estudiante?')) { await supabase.from('estudiantes').delete().eq('id', s.id); loadData(); } }} className="btn btn-ghost btn-sm text-rose-600 p-1"><span className="material-symbols-outlined !text-lg">delete</span></button>
+
+                                            {isAdmin ? (
+                                                <>
+                                                    <button
+                                                        onClick={() => handleOpenModal(s)}
+                                                        className="btn btn-ghost text-blue-600 hover:bg-blue-50 w-16 h-16 p-0 flex items-center justify-center rounded-2xl transition-all shadow-sm border border-blue-100"
+                                                        title="Editar"
+                                                    >
+                                                        <span className="material-symbols-outlined !text-5xl">edit</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={async () => { if (confirm('¿Eliminar estudiante?')) { await supabase.from('estudiantes').delete().eq('id', s.id); loadData(); } }}
+                                                        className="btn btn-ghost text-rose-600 hover:bg-rose-50 w-16 h-16 p-0 flex items-center justify-center rounded-2xl transition-all shadow-sm border border-rose-100"
+                                                        title="Eliminar"
+                                                    >
+                                                        <span className="material-symbols-outlined !text-5xl">delete</span>
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="w-16 h-16 flex items-center justify-center opacity-20 cursor-not-allowed bg-slate-100 rounded-2xl border border-slate-200" title="Sin permisos de edición">
+                                                        <span className="material-symbols-outlined !text-5xl">edit</span>
+                                                    </div>
+                                                    <div className="w-16 h-16 flex items-center justify-center opacity-20 cursor-not-allowed bg-slate-100 rounded-2xl border border-slate-200" title="Sin permisos para eliminar">
+                                                        <span className="material-symbols-outlined !text-5xl">delete</span>
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

@@ -108,6 +108,7 @@ const App = () => {
                 { path: '/docente/actividades', icon: 'list_alt', label: 'Actividades' },
                 { path: '/docente/observador', icon: 'visibility', label: 'Observador' },
                 { path: '/docente/reporte-observador', icon: 'lab_profile', label: 'Reporte Observador' },
+                { path: '/docente/estudiantes', icon: 'child_care', label: 'Estudiantes' },
                 { path: '/docente/perfil', icon: 'person', label: 'Mi Perfil' }
             ]
         }
@@ -167,6 +168,7 @@ const App = () => {
                                         <Route path="comportamiento" element={<BehaviorManagement />} />
                                         <Route path="calificaciones/:cursoId" element={<TeacherGrades />} />
                                         <Route path="actividades" element={<ActivitiesManager />} />
+                                        <Route path="estudiantes" element={<StudentsManager />} />
                                         <Route path="observador" element={<StudentObserver />} />
                                         <Route path="reporte-observador" element={<ObserverReports />} />
                                         <Route path="perfil" element={<TeacherProfile />} />
