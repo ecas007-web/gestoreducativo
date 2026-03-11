@@ -41,6 +41,7 @@ export const AchievementSettings = () => {
             setActiveYear(yData);
 
             // 2. Load Courses and subjects based on role
+            let localAssignedCourseIds = null;
             if (profile.rol === 'admin') {
                 const [cRes, mRes] = await Promise.all([
                     supabase.from('cursos').select('*').order('nombre'),
@@ -59,8 +60,9 @@ export const AchievementSettings = () => {
                         .eq('docente_id', doc.id);
 
                     // For subjects, we'll need to fetch based on what's available in the assigned courses
-                    const assignedCourses = assigned?.map(a => a.cursos) || [];
+                    const assignedCourses = assigned?.map(a => a.cursos).filter(Boolean) || [];
                     setCourses(assignedCourses);
+                    localAssignedCourseIds = assignedCourses.map(c => c.id);
 
                     if (assignedCourses.length > 0) {
                         const { data: assignedSubjects } = await supabase
@@ -84,7 +86,7 @@ export const AchievementSettings = () => {
 
             // 3. Load existing achievements for the active year
             if (yData) {
-                loadAchievements(yData.id);
+                loadAchievements(yData.id, localAssignedCourseIds);
                 const { data: pData } = await supabase.from('periodos_estado').select('*').eq('anio_academico_id', yData.id);
                 setPeriodosEstado(pData || []);
             }
@@ -96,7 +98,7 @@ export const AchievementSettings = () => {
         }
     };
 
-    const loadAchievements = async (yearId) => {
+    const loadAchievements = async (yearId, assignedCourseIds = null) => {
         let query = supabase
             .from('logros_generales')
             .select('*, cursos(nombre), materias(nombre)')
@@ -105,6 +107,18 @@ export const AchievementSettings = () => {
         if (filterCurso) query = query.eq('curso_id', filterCurso);
         if (filterMateria) query = query.eq('materia_id', filterMateria);
         if (filterPeriodo) query = query.eq('periodo', filterPeriodo);
+
+        // Filtrar por cursos asignados si es docente
+        if (profile.rol === 'docente') {
+            let validIds = assignedCourseIds || (courses.length > 0 ? courses.map(c => c.id) : []);
+            if (validIds.length > 0) {
+                query = query.in('curso_id', validIds);
+            } else {
+                // Si es docente y no tiene cursos, no mostrar nada
+                setAchievements([]);
+                return;
+            }
+        }
 
         const { data } = await query.order('periodo', { ascending: true });
         setAchievements(data || []);
@@ -187,7 +201,7 @@ export const AchievementSettings = () => {
                             value={filterMateria}
                             onChange={e => setFilterMateria(e.target.value)}
                         >
-                            <option value="">Todas las Materias</option>
+                            <option value="">Todas las Dimensiones</option>
                             {subjects.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
                         </select>
                     </div>
@@ -220,8 +234,8 @@ export const AchievementSettings = () => {
                     <table className="data-table">
                         <thead>
                             <tr>
-                                <th>Curso</th>
-                                <th>Materia</th>
+                                <th>Grado</th>
+                                <th>Dimensión</th>
                                 <th>Periodo</th>
                                 <th>Logro General</th>
                                 <th className="text-right">Acciones</th>
