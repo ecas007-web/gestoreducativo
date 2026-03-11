@@ -54,6 +54,8 @@ export const ActivitiesManager = () => {
                     supabase.from('cursos').select('*').order('nombre'),
                     supabase.from('materias').select('*').order('nombre')
                 ]);
+                setCourses(cRes.data || []);
+                setSubjects(mRes.data || []);
             } else {
                 const { data: doc } = await supabase.from('docentes').select('id').eq('user_id', profile.id).single();
                 if (doc) {

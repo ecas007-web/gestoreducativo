@@ -195,7 +195,7 @@ export const AchievementSettings = () => {
                         </select>
                     </div>
                     <div className="form-group mb-0 min-w-[180px]">
-                        <label className="text-[10px] md:text-xs uppercase font-bold text-blue-600 mb-1 block">Filtrar por Materia</label>
+                        <label className="text-[10px] md:text-xs uppercase font-bold text-blue-600 mb-1 block">Filtrar por Dimensión</label>
                         <select
                             className="form-input !py-2 text-sm md:text-base"
                             value={filterMateria}
@@ -305,14 +305,14 @@ export const AchievementSettings = () => {
                                         </select>
                                     </div>
                                     <div className="form-group">
-                                        <label className="form-label">Materia</label>
+                                        <label className="form-label">Dimensión</label>
                                         <select
                                             className="form-input" required
                                             disabled={!!modal.data}
                                             value={formData.materia_id}
                                             onChange={e => setFormData({ ...formData, materia_id: e.target.value })}
                                         >
-                                            <option value="">Seleccionar Materia...</option>
+                                            <option value="">Seleccionar Dimensión...</option>
                                             {subjects.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
                                         </select>
                                     </div>
