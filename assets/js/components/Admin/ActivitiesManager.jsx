@@ -20,14 +20,14 @@ export const ActivitiesManager = () => {
     const [filterPeriodo, setFilterPeriodo] = useState('');
 
     const activityTypes = [
-        { id: 'TC1', label: 'Tarea en clase 1' },
-        { id: 'TC2', label: 'Tarea en clase 2' },
-        { id: 'TC3', label: 'Tarea en clase 3' },
-        { id: 'TC4', label: 'Tarea en clase 4' },
-        { id: 'TH1', label: 'Tarea en casa 1' },
-        { id: 'TH2', label: 'Tarea en casa 2' },
-        { id: 'TH3', label: 'Tarea en casa 3' },
-        { id: 'TH4', label: 'Tarea en casa 4' },
+        { id: 'TC1', label: 'Tarea en Clase 1' },
+        { id: 'TC2', label: 'Tarea en Clase 2' },
+        { id: 'TC3', label: 'Tarea en Clase 3' },
+        { id: 'TC4', label: 'Tarea en Clase 4' },
+        { id: 'TH1', label: 'Tarea en Casa 1' },
+        { id: 'TH2', label: 'Tarea en Casa 2' },
+        { id: 'TH3', label: 'Tarea en Casa 3' },
+        { id: 'TH4', label: 'Tarea en Casa 4' },
     ];
 
     useEffect(() => {
@@ -200,7 +200,11 @@ export const ActivitiesManager = () => {
                                     <td><span className="badge badge-primary">{item.periodo}</span></td>
                                     <td className="font-bold text-slate-800">{item.cursos?.nombre}</td>
                                     <td className="text-slate-600 font-medium">{item.materias?.nombre}</td>
-                                    <td><span className="badge badge-ghost uppercase">{item.actividad}</span></td>
+                                    <td>
+                                        <span className="badge badge-ghost whitespace-nowrap">
+                                            {activityTypes.find(t => t.id === item.actividad)?.label || ''}
+                                        </span>
+                                    </td>
                                     <td className="text-slate-500 text-sm max-w-md truncate">{item.descripcion}</td>
                                     <td className="text-right">
                                         <button onClick={() => openModal(item)} className="btn btn-ghost btn-sm">
