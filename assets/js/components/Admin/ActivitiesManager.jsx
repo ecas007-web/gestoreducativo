@@ -13,6 +13,7 @@ export const ActivitiesManager = () => {
     const [loading, setLoading] = useState(true);
     const [modal, setModal] = useState({ open: false, data: null });
     const [formData, setFormData] = useState({ curso_id: '', materia_id: '', periodo: 'P1', actividad: 'TC1', descripcion: '' });
+    const [expandedActividadId, setExpandedActividadId] = useState(null);
 
     // Filter states
     const [filterCurso, setFilterCurso] = useState('');
@@ -173,7 +174,7 @@ export const ActivitiesManager = () => {
                         </select>
                     </div>
                     <div className="form-group mb-0 min-w-[180px]">
-                        <label className="text-[10px] md:text-xs uppercase font-bold text-blue-600 mb-1 block">Filtrar por Materia</label>
+                        <label className="text-[10px] md:text-xs uppercase font-bold text-blue-600 mb-1 block">Filtrar por Dimensión</label>
                         <select className="form-input !py-2 text-sm md:text-base" value={filterMateria} onChange={e => setFilterMateria(e.target.value)}>
                             <option value="">Todas las Dimensiones</option>
                             {subjects.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
@@ -217,7 +218,15 @@ export const ActivitiesManager = () => {
                                             {activityTypes.find(t => t.id === item.actividad)?.label || ''}
                                         </span>
                                     </td>
-                                    <td className="text-slate-500 text-sm max-w-md truncate">{item.descripcion}</td>
+                                    <td
+                                        className="text-slate-500 text-sm max-w-md cursor-pointer group"
+                                        onClick={() => setExpandedActividadId(expandedActividadId === item.id ? null : item.id)}
+                                        title="Haz clic para ver la descripción completa"
+                                    >
+                                        <div className={`transition-all duration-200 ${expandedActividadId === item.id ? 'whitespace-normal bg-slate-100 p-2 rounded-md shadow-inner text-slate-700' : 'truncate group-hover:text-blue-600'}`}>
+                                            {item.descripcion}
+                                        </div>
+                                    </td>
                                     <td className="text-right">
                                         <button onClick={() => openModal(item)} className="btn btn-ghost btn-sm">
                                             <span className="material-symbols-outlined text-slate-400">edit</span>
@@ -255,7 +264,7 @@ export const ActivitiesManager = () => {
                                         </select>
                                     </div>
                                     <div className="form-group">
-                                        <label className="form-label">Materia</label>
+                                        <label className="form-label">Dimensión</label>
                                         <select className="form-input" required disabled={!!modal.data} value={formData.materia_id} onChange={e => setFormData({ ...formData, materia_id: e.target.value })}>
                                             <option value="">Seleccionar...</option>
                                             {subjects.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
