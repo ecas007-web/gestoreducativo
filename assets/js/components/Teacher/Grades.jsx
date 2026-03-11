@@ -230,9 +230,9 @@ export const TeacherGrades = () => {
 
             <div className="card grid grid-cols-1 md:grid-cols-4 gap-6 w-full">
                 <div className="form-group">
-                    <label className="form-label">Asignatura</label>
+                    <label className="form-label">Dimensión</label>
                     <select className="form-input" value={selectedMateria} onChange={e => handleFilterChange('materia', e.target.value)}>
-                        <option value="">Seleccionar Materia...</option>
+                        <option value="">Seleccionar Dimensión...</option>
                         {subjects.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
                     </select>
                 </div>

@@ -239,29 +239,29 @@ export const ObserverReports = () => {
                 </div>
             </div>
 
-            <div className="card bg-slate-900 border-none text-white p-6 shadow-xl">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                    <div className="form-group">
-                        <label className="form-label text-blue-200 text-xs uppercase font-bold">Curso</label>
-                        <select className="form-input bg-white/10 border-white/20 text-white" value={selectedCourse} onChange={e => setSelectedCourse(e.target.value)}>
-                            <option value="" className="text-slate-800">Seleccionar Curso...</option>
-                            {courses.map(c => <option key={c.id} value={c.id} className="text-slate-800">{c.nombre}</option>)}
+            <div className="card p-0 overflow-hidden mb-6">
+                <div className="flex flex-wrap gap-4 p-4 bg-slate-50 border-b items-end">
+                    <div className="form-group mb-0 min-w-[250px] flex-1">
+                        <label className="text-[10px] md:text-xs uppercase font-bold text-blue-600 mb-1 block">Curso</label>
+                        <select className="form-input !py-2 text-sm md:text-base" value={selectedCourse} onChange={e => setSelectedCourse(e.target.value)}>
+                            <option value="">Seleccionar Curso...</option>
+                            {courses.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                         </select>
                     </div>
-                    <div className="form-group">
-                        <label className="form-label text-blue-200 text-xs uppercase font-bold">Estudiante (Opcional)</label>
-                        <select className="form-input bg-white/10 border-white/20 text-white" value={selectedStudent} onChange={e => setSelectedStudent(e.target.value)} disabled={!selectedCourse}>
-                            <option value="" className="text-slate-800">Todos los estudiantes</option>
-                            {students.map(s => <option key={s.id} value={s.id} className="text-slate-800">{s.apellidos}, {s.nombres}</option>)}
+                    <div className="form-group mb-0 min-w-[250px] flex-1">
+                        <label className="text-[10px] md:text-xs uppercase font-bold text-blue-600 mb-1 block">Estudiante (Opcional)</label>
+                        <select className="form-input !py-2 text-sm md:text-base" value={selectedStudent} onChange={e => setSelectedStudent(e.target.value)} disabled={!selectedCourse}>
+                            <option value="">Todos los estudiantes</option>
+                            {students.map(s => <option key={s.id} value={s.id}>{s.apellidos}, {s.nombres}</option>)}
                         </select>
                     </div>
                 </div>
 
-                <div className="flex gap-3 mt-6">
-                    <button onClick={() => handleGenerateBulk('single_doc')} className="btn btn-primary flex-1 py-4" disabled={generating || !selectedCourse}>
+                <div className="flex gap-3 p-4 bg-white">
+                    <button onClick={() => handleGenerateBulk('single_doc')} className="btn btn-primary flex-1 py-3" disabled={generating || !selectedCourse}>
                         <span className="material-symbols-outlined">description</span> DOCX Consolidado
                     </button>
-                    <button onClick={() => handleGenerateBulk('zip')} className="btn btn-secondary flex-1 py-4" disabled={generating || !selectedCourse}>
+                    <button onClick={() => handleGenerateBulk('zip')} className="btn btn-secondary flex-1 py-3" disabled={generating || !selectedCourse}>
                         <span className="material-symbols-outlined">folder_zip</span> Descargar ZIP
                     </button>
                 </div>
