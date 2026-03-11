@@ -36,9 +36,10 @@ export const ActivitiesManager = () => {
 
     useEffect(() => {
         if (activeYear) {
-            loadActivities(activeYear.id);
+            let assignedIds = profile.rol === 'docente' && courses.length > 0 ? courses.map(c => c.id) : null;
+            loadActivities(activeYear.id, assignedIds);
         }
-    }, [filterCurso, filterMateria, filterPeriodo, activeYear]);
+    }, [filterCurso, filterMateria, filterPeriodo, activeYear, courses, profile.rol]);
 
     const loadInitialData = async () => {
         setLoading(true);
@@ -46,19 +47,19 @@ export const ActivitiesManager = () => {
             const { data: yData } = await supabase.from('anios_academicos').select('*').eq('estado', true).maybeSingle();
             setActiveYear(yData);
 
+            let localAssignedCourseIds = null;
             if (profile.rol === 'admin') {
                 const [cRes, mRes] = await Promise.all([
                     supabase.from('cursos').select('*').order('nombre'),
                     supabase.from('materias').select('*').order('nombre')
                 ]);
-                setCourses(cRes.data || []);
-                setSubjects(mRes.data || []);
             } else {
                 const { data: doc } = await supabase.from('docentes').select('id').eq('user_id', profile.id).single();
                 if (doc) {
                     const { data: assigned } = await supabase.from('docente_cursos').select('cursos(id, nombre)').eq('docente_id', doc.id);
-                    const assignedCourses = assigned?.map(a => a.cursos) || [];
+                    const assignedCourses = assigned?.map(a => a.cursos).filter(Boolean) || [];
                     setCourses(assignedCourses);
+                    localAssignedCourseIds = assignedCourses.map(c => c.id);
 
                     if (assignedCourses.length > 0) {
                         const { data: assignedSubjects } = await supabase
@@ -80,7 +81,7 @@ export const ActivitiesManager = () => {
         }
     };
 
-    const loadActivities = async (yearId) => {
+    const loadActivities = async (yearId, assignedCourseIds = null) => {
         let query = supabase
             .from('actividades')
             .select('*, cursos(nombre), materias(nombre)')
@@ -89,6 +90,17 @@ export const ActivitiesManager = () => {
         if (filterCurso) query = query.eq('curso_id', filterCurso);
         if (filterMateria) query = query.eq('materia_id', filterMateria);
         if (filterPeriodo) query = query.eq('periodo', filterPeriodo);
+
+        // Filtrar por cursos asignados si es docente
+        if (profile.rol === 'docente') {
+            let validIds = assignedCourseIds || (courses.length > 0 ? courses.map(c => c.id) : []);
+            if (validIds.length > 0) {
+                query = query.in('curso_id', validIds);
+            } else {
+                setActivities([]);
+                return;
+            }
+        }
 
         const { data } = await query.order('periodo', { ascending: true });
         setActivities(data || []);
@@ -152,7 +164,7 @@ export const ActivitiesManager = () => {
             </div>
 
             <div className="card p-0 overflow-hidden">
-                <div className="flex flex-wrap gap-4 p-4 bg-slate-50 border-b items-end">
+                <div className="flex flex-wrap gap-4 p-4 b g-slate-50 border-b items-end">
                     <div className="form-group mb-0 min-w-[180px]">
                         <label className="text-[10px] md:text-xs uppercase font-bold text-blue-600 mb-1 block">Filtrar por Curso</label>
                         <select className="form-input !py-2 text-sm md:text-base" value={filterCurso} onChange={e => setFilterCurso(e.target.value)}>
@@ -163,7 +175,7 @@ export const ActivitiesManager = () => {
                     <div className="form-group mb-0 min-w-[180px]">
                         <label className="text-[10px] md:text-xs uppercase font-bold text-blue-600 mb-1 block">Filtrar por Materia</label>
                         <select className="form-input !py-2 text-sm md:text-base" value={filterMateria} onChange={e => setFilterMateria(e.target.value)}>
-                            <option value="">Todas las Materias</option>
+                            <option value="">Todas las Dimensiones</option>
                             {subjects.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
                         </select>
                     </div>
@@ -187,8 +199,8 @@ export const ActivitiesManager = () => {
                         <thead>
                             <tr>
                                 <th>Periodo</th>
-                                <th>Curso</th>
-                                <th>Materia</th>
+                                <th>Grado</th>
+                                <th>Dimensión</th>
                                 <th>Actividad</th>
                                 <th>Descripción</th>
                                 <th className="text-right">Acciones</th>
