@@ -47,7 +47,7 @@ export const PaymentsManager = () => {
         monto_maximo_permitido: 0,
         monto: '',
         metodo_pago: 'transferencia',
-        fecha_pago: new Date().toISOString().split('T')[0],
+        fecha_pago: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         observacion: ''
     };
     const [formData, setFormData] = useState(initialFormState);
