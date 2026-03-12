@@ -7,7 +7,7 @@ import { SCHOOL_NAME, supabase } from '../config.jsx';
 export const Layout = ({ children, roleTitle, navigation }) => {
     const { profile, signOut } = useAuth();
     const location = useLocation();
-    const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 1024);
+    const [sidebarOpen, setSidebarOpen] = useState(true);
     const { isDirty, showConfirmModal, attemptNavigation, confirmNavigation, cancelNavigation } = useNavigationGuard();
 
     const nombre = `${profile?.nombres || ''} ${profile?.apellidos || ''}`.trim() || profile?.correo || 'Usuario';
@@ -55,7 +55,7 @@ export const Layout = ({ children, roleTitle, navigation }) => {
                                     className={`sidebar-link ${location.pathname.startsWith(link.path) ? 'active' : ''}`}
                                 >
                                     <span className="material-symbols-outlined sidebar-icon">{link.icon}</span>
-                                    {sidebarOpen && <span>{link.label}</span>}
+                                    <span className="sidebar-label">{link.label}</span>
                                 </Link>
                             ))}
                         </React.Fragment>
@@ -65,12 +65,10 @@ export const Layout = ({ children, roleTitle, navigation }) => {
                 <div className="sidebar-footer">
                     <div className="sidebar-user">
                         <div className="sidebar-avatar">{initial}</div>
-                        {sidebarOpen && (
-                            <div className="sidebar-user-info">
-                                <div className="sidebar-user-name truncate w-32">{nombre}</div>
-                                <div className="sidebar-user-role">{roleTitle}</div>
-                            </div>
-                        )}
+                        <div className="sidebar-user-info">
+                            <div className="sidebar-user-name truncate w-32">{nombre}</div>
+                            <div className="sidebar-user-role">{roleTitle}</div>
+                        </div>
                         <button onClick={cerrarSesion} className="ml-auto text-slate-400 hover:text-white transition-colors">
                             <span className="material-symbols-outlined">logout</span>
                         </button>

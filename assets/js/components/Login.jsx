@@ -316,7 +316,6 @@ export const LoginPage = () => {
                             </form>
 
                             <div className="mt-8 text-center space-y-3">
-                                <p className="text-sm text-slate-500 font-medium">¿Necesitas una cuenta?</p>
                                 <div className="flex flex-col gap-2">
                                     <button
                                         onClick={() => setView('student_register')}
@@ -490,7 +489,7 @@ export const LoginPage = () => {
             {/* Modal de Registro de Estudiante (Fuera del container para evitar clipping) */}
             {verifiedStudent && view === 'student_register' && (
                 <div className="modal-backdrop">
-                    <div className="modal !max-w-6xl max-h-[90vh] flex flex-col shadow-2xl">
+                    <div className="modal !max-w-[1400px] max-h-[90vh] flex flex-col shadow-2xl">
                         <div className="modal-header shrink-0">
                             <div>
                                 <h3 className="text-xl font-black text-slate-900 leading-tight">Completar Registro Estudiantil</h3>
