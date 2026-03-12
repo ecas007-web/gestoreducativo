@@ -30,7 +30,7 @@ export const PaymentsManager = () => {
     const [showModal, setShowModal] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [searchHistorial, setSearchHistorial] = useState('');
-    const [mesHistorial, setMesHistorial] = useState(''); // '' es Todos
+    const [mesHistorial, setMesHistorial] = useState(new Date().getMonth() + 1); // mes actual por defecto
     const [anioHistorial, setAnioHistorial] = useState('');
     const [estudiantesBuscados, setEstudiantesBuscados] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
