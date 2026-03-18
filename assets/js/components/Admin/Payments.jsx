@@ -11,7 +11,7 @@ const MESES = [
 ];
 
 export const PaymentsManager = () => {
-    const { profile } = useAuth();
+    const { profile, session } = useAuth();
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('al_dia');
     const [mesFiltro, setMesFiltro] = useState(new Date().getMonth() + 1); // mes actual por defecto
@@ -379,7 +379,7 @@ export const PaymentsManager = () => {
                 fecha_pago: formData.fecha_pago,
                 estado: 'pagado',
                 observacion: formData.observacion,
-                registrado_por: profile.id
+                registrado_por: session?.user?.id || profile?.id || null
             };
 
             if (formData.id) {
@@ -667,7 +667,13 @@ export const PaymentsManager = () => {
                                                 <div className="font-bold text-emerald-600">${Number(p.monto).toLocaleString()}</div>
                                             </td>
                                             <td>
-                                                <div className="text-xs font-bold text-slate-800 uppercase tracking-tighter">{p.perfil_registrador ? `${p.perfil_registrador.nombres} ${p.perfil_registrador.apellidos}` : (p.registrado_por ? 'Usuario' : 'Admin')}</div>
+                                                <div className="text-xs font-bold text-slate-800 uppercase tracking-tighter">
+                                                    {p.perfil_registrador
+                                                        ? `${p.perfil_registrador.nombres} ${p.perfil_registrador.apellidos}`
+                                                        : ((p.registrado_por === session?.user?.id || p.registrado_por === profile?.id)
+                                                            ? `${profile?.nombres || ''} ${profile?.apellidos || ''}`.trim() || 'Tú'
+                                                            : (p.registrado_por ? 'Usuario' : `${profile?.nombres || ''} ${profile?.apellidos || ''}`.trim() || 'Usuario'))}
+                                                </div>
                                                 <div className="text-xs text-slate-800">
                                                     {p.created_at ? new Date(p.created_at).toLocaleString('es-CO', {
                                                         day: '2-digit',
