@@ -158,7 +158,7 @@ export const StudentProfile = () => {
     );
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8 pb-20">
+        <div className="max-w-[1400px] mx-auto space-y-8 pb-20">
             <div className="card bg-gradient-to-br from-blue-600 to-blue-800 border-none text-white p-10 relative overflow-hidden">
                 <div className="relative z-10 flex items-center gap-8">
                     <div className="w-32 h-32 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-5xl font-black">
@@ -189,7 +189,7 @@ export const StudentProfile = () => {
 
             {showCompleteModal && (
                 <div className="modal-backdrop">
-                    <div className="modal animate-fadeInUp !max-w-4xl">
+                    <div className="modal animate-fadeInUp !max-w-[1400px]">
                         <div className="modal-header">
                             <div>
                                 <h3 className="modal-title text-blue-600">Completar Registro</h3>

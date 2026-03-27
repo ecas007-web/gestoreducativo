@@ -214,6 +214,12 @@ Modulo de cierre de periodo
     •	En el modulo de logros generales Tampoco se podrá agregar ni editar logros de un periodo cerrado
     •	En el modulo de comportamiento Tampoco se podrá editar los registros  de un periodo cerrado
 
+dasboard del estudiante
+
+    cuando inicio sesion como estudiante, el el menu calificaciones muestre el estado de mi pago, quiero que alli muestre: al dia, si el mes en curso esta pagado en si totalidad; en mora si tiene saldo pendiente del mes en curso, y que muestre el mes actual
+    
+    En el dasboard del estudiante permiteme visualizar las calificaciones del perido y año seleccioando, solo si es estudiante se encuentra al dia, debes buscar las calificaiones y mostrar: la dimension, la escala, nombre del docente, el periodo y el logro concatenado
+
 
 
 
