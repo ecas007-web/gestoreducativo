@@ -97,13 +97,14 @@ export const TeacherGrades = () => {
                 .match({ estudiante_id: estId, materia_id: selectedMateria, periodo, anio_academico_id: activeYear.id })
                 .maybeSingle();
             const calc = calculateValues(data);
+            const parseVal = (v) => (v === '' || v === null || v === undefined) ? null : Number(v);
             const payload = {
                 estudiante_id: estId, materia_id: selectedMateria, curso_id: cursoId, periodo, anio_academico_id: activeYear.id,
-                tc1: data.tc1 || 0, tc2: data.tc2 || 0, tc3: data.tc3 || 0, tc4: data.tc4 || 0,
-                th1: data.th1 || 0, th2: data.th2 || 0, th3: data.th3 || 0, th4: data.th4 || 0,
-                cuaderno: data.cuaderno || 0, examen: data.examen || 0,
-                nota: calc.final || 0, nota_final: calc.final,
-                escala_valorativa: calc.escala, logro_calculado: calc.logro,
+                tc1: parseVal(data.tc1), tc2: parseVal(data.tc2), tc3: parseVal(data.tc3), tc4: parseVal(data.tc4),
+                th1: parseVal(data.th1), th2: parseVal(data.th2), th3: parseVal(data.th3), th4: parseVal(data.th4),
+                cuaderno: parseVal(data.cuaderno), examen: parseVal(data.examen),
+                nota: calc.final !== null ? calc.final : null, nota_final: calc.final !== null ? calc.final : null,
+                escala_valorativa: calc.escala || null, logro_calculado: calc.logro || null,
                 updated_at: new Date()
             };
             if (existe) await supabase.from('calificaciones').update(payload).eq('id', existe.id);
@@ -485,7 +486,7 @@ const GradeCell = ({ value, onChange, className = '', title = '', disabled }) =>
         <input
             type="number" step="0.1"
             className={`w-full h-10 text-center bg-transparent border-none focus:ring-2 focus:ring-blue-400 rounded-lg font-bold text-slate-700 p-0 ${disabled ? 'cursor-not-allowed text-slate-400' : ''}`}
-            value={value || ''}
+            value={value !== null && value !== undefined ? value : ''}
             onChange={e => onChange(e.target.value)}
             disabled={disabled}
             placeholder="-"

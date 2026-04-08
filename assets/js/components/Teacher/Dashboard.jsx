@@ -9,7 +9,7 @@ export const TeacherDashboard = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (profile?.assignedCourses) {
+        if (profile?.assignedCourses && profile?.rol !== 'admin') {
             setAssignedCourses(profile.assignedCourses);
             setLoading(false);
         } else if (profile?.id) {
@@ -21,24 +21,30 @@ export const TeacherDashboard = () => {
         if (!profile?.id) return;
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('docentes')
-                .select(`
-                    id,
-                    docente_cursos (
-                        cursos (*)
-                    )
-                `)
-                .eq('user_id', profile.id)
-                .maybeSingle();
+            if (profile.rol === 'admin') {
+                const { data, error } = await supabase.from('cursos').select('*').order('id');
+                if (error) throw error;
+                setAssignedCourses(data || []);
+            } else {
+                const { data, error } = await supabase
+                    .from('docentes')
+                    .select(`
+                        id,
+                        docente_cursos (
+                            cursos (*)
+                        )
+                    `)
+                    .eq('user_id', profile.id)
+                    .maybeSingle();
 
-            if (error) throw error;
+                if (error) throw error;
 
-            if (data) {
-                const courses = data.docente_cursos
-                    ?.map(dc => dc.cursos)
-                    .filter(Boolean) || [];
-                setAssignedCourses(courses);
+                if (data) {
+                    const courses = data.docente_cursos
+                        ?.map(dc => dc.cursos)
+                        .filter(Boolean) || [];
+                    setAssignedCourses(courses);
+                }
             }
         } catch (err) {
             console.error("Error al cargar cursos:", err);
@@ -53,8 +59,8 @@ export const TeacherDashboard = () => {
         <div className="space-y-8">
             <div className="flex items-center justify-between mb-2">
                 <div>
-                    <h2 className="text-3xl font-black text-slate-800">Mis Cursos</h2>
-                    <p className="text-slate-500 font-medium">Gestiona el progreso académico de tus grupos.</p>
+                    <h2 className="text-3xl font-black text-slate-800">Subir Calificaciones</h2>
+                    <p className="text-slate-500 font-medium">Selecciona el curso para gestionar el progreso académico.</p>
                 </div>
             </div>
 
@@ -69,7 +75,7 @@ export const TeacherDashboard = () => {
                         </div>
                         <h3 className="text-xl font-bold text-slate-800 mb-2">{c.nombre}</h3>
                         <p className="text-sm text-slate-500 mb-8 line-clamp-2">{c.descripcion || 'Sin descripción del curso.'}</p>
-                        <Link to={`/docente/calificaciones/${c.id}`} className="btn btn-primary btn-block">
+                        <Link to={`/${profile?.rol === 'admin' ? 'admin' : 'docente'}/calificaciones/${c.id}`} className="btn btn-primary btn-block">
                             <span className="material-symbols-outlined text-base">edit_note</span> Subir Calificaciones
                         </Link>
                     </div>
@@ -77,7 +83,7 @@ export const TeacherDashboard = () => {
                 {assignedCourses.length === 0 && (
                     <div className="col-span-full card text-center py-20 border-dashed border-2">
                         <span className="material-symbols-outlined text-5xl text-slate-200 mb-4">event_busy</span>
-                        <p className="text-slate-400 font-bold">No tienes cursos asignados actualmente.</p>
+                        <p className="text-slate-400 font-bold">No hay cursos disponibles actualmente.</p>
                     </div>
                 )}
             </div>

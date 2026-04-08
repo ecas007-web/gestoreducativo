@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../config.jsx';
 import { mostrarToast } from '../../utils.jsx';
 
@@ -63,6 +64,7 @@ export const CoursesManager = () => {
                         <h3 className="text-lg font-bold text-slate-800 mb-2">{c.nombre}</h3>
                         <p className="text-sm text-slate-500 mb-6 line-clamp-2">{c.descripcion || 'Sin descripción.'}</p>
                         <div className="flex justify-end gap-2 border-t pt-4">
+                            <Link to={`/admin/calificaciones/${c.id}`} className="btn btn-ghost btn-sm text-indigo-600" title="Cargar Notas"><span className="material-symbols-outlined text-base">edit_note</span></Link>
                             <button onClick={() => { setFormData(c); setShowModal(true); }} className="btn btn-ghost btn-sm text-blue-600"><span className="material-symbols-outlined text-base">edit</span></button>
                             <button onClick={async () => { if (confirm('¿Eliminar curso?')) { await supabase.from('cursos').delete().eq('id', c.id); loadCourses(); } }} className="btn btn-ghost btn-sm text-rose-600"><span className="material-symbols-outlined text-base">delete</span></button>
                         </div>
