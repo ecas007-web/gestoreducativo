@@ -5,7 +5,7 @@ import { useAuth } from '../../AuthContext.jsx';
 import PizZip from 'pizzip';
 import Docxtemplater from 'docxtemplater';
 import { saveAs } from 'file-saver';
-
+import * as XLSX from 'xlsx';
 export const StudentsManager = () => {
     const { profile } = useAuth();
     const isAdmin = profile?.rol === 'admin';
@@ -180,6 +180,49 @@ export const StudentsManager = () => {
         }
     };
 
+    const exportToExcel = () => {
+        if (filteredStudents.length === 0) {
+            mostrarToast('No hay datos para exportar', 'warning');
+            return;
+        }
+
+        const dataToExport = filteredStudents.map(s => ({
+            'Nombres': s.nombres,
+            'Apellidos': s.apellidos,
+            'Tipo Documento': s.tipo_documento,
+            'Número Documento': s.numero_documento,
+            'Curso': s.cursos?.nombre || 'Sin asignar',
+            'Fecha Nacimiento': s.fecha_nac ? new Date(s.fecha_nac).toLocaleDateString() : '',
+            'Sexo': s.sexo === 'M' ? 'Masculino' : s.sexo === 'F' ? 'Femenino' : 'N/A',
+            'Lugar Nacimiento': s.lugar_nacimiento,
+            'Dirección': s.direccion,
+            'Correo': s.correo,
+            'Teléfono': s.telefono,
+            'Celular': s.celular,
+            'EPS': s.eps,
+            'Tipo Sangre': s.tipo_sangre,
+            'Religión': s.religion,
+            'Documento Padre': s.documento_padre,
+            'Nombre Padre': s.nombre_padre,
+            'Ocupación Padre': s.ocupacion_padre,
+            'Teléfono Padre': s.telefono_padre,
+            'Documento Madre': s.documento_madre,
+            'Nombre Madre': s.nombre_madre,
+            'Ocupación Madre': s.ocupacion_madre,
+            'Teléfono Madre': s.telefono_madre,
+            'Debilidades': s.debilidades,
+            'Fortalezas': s.fortalezas,
+            'Registro Completo': s.registro_completo ? 'Sí' : 'No'
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Estudiantes");
+
+        XLSX.writeFile(workbook, "Estudiantes.xlsx");
+        mostrarToast('Exportación a Excel exitosa', 'success');
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -187,11 +230,16 @@ export const StudentsManager = () => {
                     <h2 className="text-xl md:text-3xl font-black text-slate-800 leading-tight">Gestión de Estudiantes</h2>
                     <p className="text-slate-500 text-sm md:text-base font-medium">Administra los perfiles completos de los alumnos.</p>
                 </div>
-                {isAdmin && (
-                    <button onClick={() => handleOpenModal()} className="btn btn-primary">
-                        <span className="material-symbols-outlined">person_add</span> Pre-registrar Estudiante
+                <div className="flex flex-wrap gap-2">
+                    <button onClick={exportToExcel} className="btn bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2">
+                        <span className="material-symbols-outlined">download</span> Exportar Excel
                     </button>
-                )}
+                    {isAdmin && (
+                        <button onClick={() => handleOpenModal()} className="btn btn-primary flex items-center justify-center gap-2">
+                            <span className="material-symbols-outlined">person_add</span> Pre-registrar Estudiante
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="card flex flex-col md:flex-row gap-4 flex-wrap">

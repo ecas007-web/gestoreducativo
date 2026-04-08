@@ -71,6 +71,7 @@ const App = () => {
         {
             title: 'Académico',
             links: [
+                { path: '/admin/subir-calificaciones', icon: 'edit_note', label: 'Subir Calificaciones' },
                 { path: '/admin/anios-academicos', icon: 'event', label: 'Años Académicos' },
                 { path: '/admin/periodos', icon: 'lock_open_right', label: 'Gestión de Periodos' },
                 { path: '/admin/escalas', icon: 'grade', label: 'Escala Valorativa' },
@@ -104,7 +105,7 @@ const App = () => {
         {
             title: 'Principal',
             links: [
-                { path: '/docente/dashboard', icon: 'dashboard', label: 'Inicio' },
+                { path: '/docente/dashboard', icon: 'edit_note', label: 'Subir Calificaciones' },
                 { path: '/docente/logros', icon: 'emoji_events', label: 'Logros Generales' },
                 { path: '/docente/comportamiento', icon: 'psychology', label: 'Comportamiento' },
                 { path: '/docente/actividades', icon: 'list_alt', label: 'Actividades' },
@@ -147,7 +148,9 @@ const App = () => {
                                         <Route path="escalas" element={<ScaleSettings />} />
                                         <Route path="logros" element={<AchievementSettings />} />
                                         <Route path="comportamiento" element={<BehaviorManagement />} />
+                                        <Route path="subir-calificaciones" element={<TeacherDashboard />} />
                                         <Route path="cursos" element={<CoursesManager />} />
+                                        <Route path="calificaciones/:cursoId" element={<TeacherGrades />} />
                                         <Route path="materias" element={<SubjectsManager />} />
                                         <Route path="pagos" element={<PaymentsManager />} />
                                         <Route path="actividades" element={<ActivitiesManager />} />
