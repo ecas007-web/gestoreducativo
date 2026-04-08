@@ -261,6 +261,10 @@ export const StudentsManager = () => {
                 </select>
             </div>
 
+            <div className="text-lg font-bold text-slate-700 px-1 text-right">
+                Total encontrados: {filteredStudents.length}
+            </div>
+
             <div className="card p-0 overflow-hidden">
                 <div className="table-wrapper overflow-x-auto">
                     <table className="data-table whitespace-nowrap">
