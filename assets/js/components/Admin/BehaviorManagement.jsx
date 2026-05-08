@@ -75,6 +75,7 @@ export const BehaviorManagement = () => {
                 .from('estudiantes')
                 .select('id, nombres, apellidos')
                 .eq('curso_id', filterGrade)
+                .eq('estado', 'activo')
                 .order('apellidos');
 
             setStudents(sData || []);

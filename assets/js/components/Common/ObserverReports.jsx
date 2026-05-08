@@ -72,7 +72,7 @@ export const ObserverReports = () => {
     };
 
     const loadStudents = async () => {
-        const { data } = await supabase.from('estudiantes').select('*').eq('curso_id', selectedCourse).order('apellidos');
+        const { data } = await supabase.from('estudiantes').select('*').eq('curso_id', selectedCourse).eq('estado', 'activo').order('apellidos');
         setStudents(data || []);
     };
 
@@ -88,8 +88,8 @@ export const ObserverReports = () => {
                 .select('*, curso:cursos(*), historial:estudiante_observador(*)')
                 .order('apellidos');
 
-            if (selectedCourse) query = query.eq('curso_id', selectedCourse);
-            if (selectedStudent) query = query.eq('id', selectedStudent);
+            if (selectedCourse) query = query.eq('curso_id', selectedCourse).eq('estado', 'activo');
+            if (selectedStudent) query = query.eq('id', selectedStudent).eq('estado', 'activo');
 
             const { data, error } = await query;
             if (error) throw error;

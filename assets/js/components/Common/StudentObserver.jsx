@@ -82,7 +82,7 @@ export const StudentObserver = () => {
         if (!periodo) return;
         try {
             const [stdRes, obsRes] = await Promise.all([
-                supabase.from('estudiantes').select('*').eq('curso_id', selectedCourse).order('apellidos'),
+                supabase.from('estudiantes').select('*').eq('curso_id', selectedCourse).eq('estado', 'activo').order('apellidos'),
                 supabase.from('estudiante_observador').select('*').match({
                     periodo: periodo,
                     anio_academico_id: activeYear.id
