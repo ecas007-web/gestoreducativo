@@ -21,9 +21,9 @@ export const StudentsManager = () => {
         direccion: '', correo: '', telefono: '', celular: '', eps: '', tipo_sangre: '',
         documento_padre: '', nombre_padre: '', ocupacion_padre: '', telefono_padre: '',
         nombre_madre: '', documento_madre: '', ocupacion_madre: '', telefono_madre: '',
-        religion: '', debilidades: '', fortalezas: ''
+        religion: '', debilidades: '', fortalezas: '', estado: 'activo'
     });
-    const [filters, setFilters] = useState({ query: '', courseId: '', status: '', anioId: '' });
+    const [filters, setFilters] = useState({ query: '', courseId: '', status: '', anioId: '', estado: '' });
     const [generatingCert, setGeneratingCert] = useState(null);
 
     useEffect(() => {
@@ -84,9 +84,10 @@ export const StudentsManager = () => {
         const doc = s.numero_documento || '';
         const matchesQuery = (name + doc).toLowerCase().includes(filters.query.toLowerCase());
         const matchesCourse = !filters.courseId || s.curso_id == filters.courseId;
-        const matchesStatus = !filters.status || (filters.status === 'complete' ? s.registro_completo : !s.registro_completo);
+        const matchesRegStatus = !filters.status || (filters.status === 'complete' ? s.registro_completo : !s.registro_completo);
         const matchesYear = !filters.anioId || s.anio_academico_id == filters.anioId;
-        return matchesQuery && matchesCourse && matchesStatus && matchesYear;
+        const matchesEstado = !filters.estado || s.estado === filters.estado;
+        return matchesQuery && matchesCourse && matchesRegStatus && matchesYear && matchesEstado;
     });
 
     const handleOpenModal = (student = null) => {
@@ -118,7 +119,8 @@ export const StudentsManager = () => {
                 telefono_madre: student.telefono_madre || '',
                 religion: student.religion || '',
                 debilidades: student.debilidades || '',
-                fortalezas: student.fortalezas || ''
+                fortalezas: student.fortalezas || '',
+                estado: student.estado || 'activo'
             });
         } else {
             setFormData({
@@ -127,7 +129,7 @@ export const StudentsManager = () => {
                 direccion: '', correo: '', telefono: '', celular: '', eps: '', tipo_sangre: '',
                 documento_padre: '', nombre_padre: '', ocupacion_padre: '', telefono_padre: '',
                 nombre_madre: '', documento_madre: '', ocupacion_madre: '', telefono_madre: '',
-                religion: '', debilidades: '', fortalezas: ''
+                religion: '', debilidades: '', fortalezas: '', estado: 'activo'
             });
         }
         setShowModal(true);
@@ -255,9 +257,14 @@ export const StudentsManager = () => {
                     {courses.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                 </select>
                 <select className="form-input md:w-80" value={filters.status} onChange={e => setFilters({ ...filters, status: e.target.value })}>
-                    <option value="">Todos los Estados</option>
+                    <option value="">Todos los Registros</option>
                     <option value="pending">Pre-registro</option>
                     <option value="complete">Completo</option>
+                </select>
+                <select className="form-input md:w-40" value={filters.estado} onChange={e => setFilters({ ...filters, estado: e.target.value })}>
+                    <option value="">Todos los Estados</option>
+                    <option value="activo">Activo</option>
+                    <option value="retirado">Retirado</option>
                 </select>
             </div>
 
@@ -278,6 +285,7 @@ export const StudentsManager = () => {
                                 <th>Contacto</th>
                                 <th>Padre</th>
                                 <th>Madre</th>
+                                <th>Reg. Perfil</th>
                                 <th>Estado</th>
                             </tr>
                         </thead>
@@ -361,6 +369,11 @@ export const StudentsManager = () => {
                                     <td>
                                         <span className={`badge ${s.registro_completo ? 'badge-success' : 'badge-warning'}`}>
                                             {s.registro_completo ? 'Completo' : 'Pendiente'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span className={`badge ${s.estado === 'retirado' ? 'badge-error' : 'badge-success'}`}>
+                                            {s.estado || 'Activo'}
                                         </span>
                                     </td>
                                 </tr>
@@ -484,6 +497,15 @@ export const StudentsManager = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                                         <div className="form-group"><label className="form-label">Debilidades</label><textarea className="form-input h-20" value={formData.debilidades} onChange={e => setFormData({ ...formData, debilidades: e.target.value })} placeholder="Aspectos a mejorar..."></textarea></div>
                                         <div className="form-group"><label className="form-label">Fortalezas</label><textarea className="form-input h-20" value={formData.fortalezas} onChange={e => setFormData({ ...formData, fortalezas: e.target.value })} placeholder="Habilidades y capacidades..."></textarea></div>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                                        <div className="form-group">
+                                            <label className="form-label">Estado del Estudiante</label>
+                                            <select required className="form-input" value={formData.estado} onChange={e => setFormData({ ...formData, estado: e.target.value })}>
+                                                <option value="activo">Activo</option>
+                                                <option value="retirado">Retirado</option>
+                                            </select>
+                                        </div>
                                     </div>
                                 </section>
                             </form>

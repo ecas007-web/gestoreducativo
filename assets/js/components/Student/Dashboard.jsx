@@ -213,6 +213,12 @@ export const StudentDashboard = () => {
                         <h3 className="text-xl font-bold text-slate-500">Selecciona los filtros y haz clic en Consultar</h3>
                         <p className="text-slate-400 max-w-xs mx-auto">Para visualizar tus calificaciones y logros del periodo seleccionado.</p>
                     </div>
+                ) : estData?.estado === 'retirado' ? (
+                    <div className="p-12 text-center bg-slate-100 border border-slate-200 rounded-3xl mt-6 shadow-sm">
+                        <span className="material-symbols-outlined text-slate-500 text-6xl mb-4">person_off</span>
+                        <h3 className="text-2xl font-black text-slate-900 mb-2">Cuenta Inactiva</h3>
+                        <p className="text-slate-600 font-medium max-w-md mx-auto">Tu perfil se encuentra en estado RETIRADO. No tienes permitido visualizar calificaciones ni estados de cuenta en este momento.</p>
+                    </div>
                 ) : estadoPago.estado === 'En mora' ? (
                     <div className="p-12 text-center bg-rose-50 border border-rose-200 rounded-3xl mt-6 shadow-sm">
                         <span className="material-symbols-outlined text-rose-500 text-6xl mb-4">gavel</span>

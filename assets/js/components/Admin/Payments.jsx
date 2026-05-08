@@ -90,7 +90,8 @@ export const PaymentsManager = () => {
             // 1. Obtener todos los estudiantes activos (con su curso)
             const { data: estudiantes, error: estError } = await supabase
                 .from('estudiantes')
-                .select('id, nombres, apellidos, numero_documento, cursos(nombre)');
+                .select('id, nombres, apellidos, numero_documento, cursos(nombre)')
+                .eq('estado', 'activo');
             if (estError) throw estError;
 
             // 2. Obtener todos los descuentos para el año activo
@@ -275,6 +276,7 @@ export const PaymentsManager = () => {
                 const { data, error } = await supabase
                     .from('estudiantes')
                     .select('id, nombres, apellidos, numero_documento, cursos(nombre)')
+                    .eq('estado', 'activo')
                     .or(`nombres.ilike.%${searchTerm}%,apellidos.ilike.%${searchTerm}%,numero_documento.ilike.%${searchTerm}%`)
                     .limit(8);
 

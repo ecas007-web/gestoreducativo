@@ -22,7 +22,7 @@ export const ReportsManager = () => {
 
     useEffect(() => {
         if (selectedCourse) {
-            supabase.from('estudiantes').select('*').eq('curso_id', selectedCourse).order('apellidos')
+            supabase.from('estudiantes').select('*').eq('curso_id', selectedCourse).eq('estado', 'activo').order('apellidos')
                 .then(({ data }) => setStudents(data || []));
         } else {
             setStudents([]);
@@ -96,6 +96,7 @@ export const ReportsManager = () => {
                 .from('estudiantes')
                 .select('*')
                 .eq('curso_id', selectedCourse)
+                .eq('estado', 'activo')
                 .order('apellidos');
 
             if (!allStudents?.length) throw new Error('No hay estudiantes en este curso.');

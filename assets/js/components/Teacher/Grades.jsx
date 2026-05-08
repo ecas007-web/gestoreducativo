@@ -175,7 +175,7 @@ export const TeacherGrades = () => {
             const [cRes, mRes, sRes, yRes, scalesRes] = await Promise.all([
                 supabase.from('cursos').select('*').eq('id', cursoId).single(),
                 supabase.from('curso_materias').select('materias(id, nombre)').eq('curso_id', cursoId),
-                supabase.from('estudiantes').select('*').eq('curso_id', cursoId).order('apellidos'),
+                supabase.from('estudiantes').select('*').eq('curso_id', cursoId).eq('estado', 'activo').order('apellidos'),
                 supabase.from('anios_academicos').select('*').eq('estado', true).maybeSingle(),
                 supabase.from('escalas_valorativas').select('*').order('rango_minimo', { ascending: true }),
                 supabase.from('periodos_estado').select('*').order('periodo', { ascending: true })

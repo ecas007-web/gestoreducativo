@@ -220,6 +220,16 @@ dasboard del estudiante
     
     En el dasboard del estudiante permiteme visualizar las calificaciones del perido y año seleccioando, solo si es estudiante se encuentra al dia, debes buscar las calificaiones y mostrar: la dimension, la escala, nombre del docente, el periodo y el logro concatenado
 
+Estado del estudiante:
+    quiero que en el modulo de estudiantes se le adciones un estado (activo, retirado) solo el adminstrador podra cambiar el estado
+    cuando el estudiante esta retirado no se podran mostrar sus calificaciones ni permitir el ingreso al modulo de calificaciones
+    cuando el estudiante esta activo se podran mostrar sus calificaciones y permitir el ingreso al modulo de calificaciones
+    el estudiante retirado no debe mostrarte al docente parra el ingreso de notas, ni aparecer en ninguna tabla que muestre estudiantes.
+    el estudiante retirado no debe aparecer en el la consuta de estudiantes en mora.
+    cuando crees el campo todo los estudiantes apareceran como activos por defecto
+    cuando se ingresa con rol de estudiante no se debe mostrar el estado del estudiante
+
+
 
 
 

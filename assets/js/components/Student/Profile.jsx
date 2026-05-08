@@ -172,7 +172,15 @@ export const StudentProfile = () => {
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
             </div>
 
-            <form onSubmit={handleUpdate} className="space-y-6">
+            {estData?.estado === 'retirado' ? (
+                <div className="card bg-slate-100 border-slate-200 p-20 text-center space-y-4">
+                    <span className="material-symbols-outlined text-7xl text-slate-400">person_off</span>
+                    <h3 className="text-2xl font-black text-slate-800">Cuenta en Estado RETIRADO</h3>
+                    <p className="text-slate-500 font-medium max-w-md mx-auto">Tu perfil ha sido marcado como retirado por la administración. No tienes permisos para editar tu información personal en este momento.</p>
+                </div>
+            ) : (
+                <>
+                <form onSubmit={handleUpdate} className="space-y-6">
                 <div className="card">
                     <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2">
                         <span className="material-symbols-outlined text-blue-600">person</span> Mi Perfil Completo
@@ -186,6 +194,8 @@ export const StudentProfile = () => {
                     </button>
                 </div>
             </form>
+            </>
+            )}
 
             {showCompleteModal && (
                 <div className="modal-backdrop">

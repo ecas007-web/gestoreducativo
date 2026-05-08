@@ -15,7 +15,7 @@ export const AdminDashboard = () => {
         setLoading(true);
         try {
             const [sts, tch, cur, pay] = await Promise.all([
-                supabase.from('estudiantes').select('id', { count: 'exact', head: true }),
+                supabase.from('estudiantes').select('id', { count: 'exact', head: true }).eq('estado', 'activo'),
                 supabase.from('docentes').select('id', { count: 'exact', head: true }),
                 supabase.from('cursos').select('id', { count: 'exact', head: true }),
                 supabase.from('pagos').select('id', { count: 'exact', head: true }).eq('estado', 'Pendiente')
@@ -31,6 +31,7 @@ export const AdminDashboard = () => {
             const { data: recent } = await supabase
                 .from('estudiantes')
                 .select('*, cursos(nombre)')
+                .eq('estado', 'activo')
                 .order('id', { ascending: false })
                 .limit(5);
 
