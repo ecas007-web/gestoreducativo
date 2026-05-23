@@ -520,13 +520,21 @@ export const PaymentsManager = () => {
                             </div>
                         )}
                         {activeTab === 'en_mora' && (
-                            <button
-                                onClick={exportarMoraExcel}
-                                className="btn btn-ghost text-emerald-700 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 flex items-center gap-2"
-                            >
-                                <span className="material-symbols-outlined">description</span>
-                                Exportar a Excel
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <div className="bg-rose-50 text-rose-700 border border-rose-200 px-4 py-1.5 rounded-lg flex flex-col items-end shadow-sm">
+                                    <span className="text-xs font-bold uppercase tracking-wider">Total Saldo en Contra</span>
+                                    <span className="text-lg font-black">
+                                        ${reporteEnMora.reduce((sum, est) => sum + est.saldoPendiente, 0).toLocaleString()}
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={exportarMoraExcel}
+                                    className="btn btn-ghost text-emerald-700 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 flex items-center gap-2"
+                                >
+                                    <span className="material-symbols-outlined">description</span>
+                                    Exportar a Excel
+                                </button>
+                            </div>
                         )}
                     </div>
                 </div>
