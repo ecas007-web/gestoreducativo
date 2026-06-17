@@ -142,7 +142,37 @@ export const AchievementSettings = () => {
             if (modal.data) {
                 const { error } = await supabase.from('logros_generales').update({ logro: formData.logro, periodo: formData.periodo }).eq('id', modal.data.id);
                 if (error) throw error;
-                mostrarToast('Logro actualizado', 'success');
+
+                // Propagate update to existing student grades
+                try {
+                    const { data: scalesData } = await supabase.from('escalas_valorativas').select('*');
+                    const { data: gradesData } = await supabase.from('calificaciones')
+                        .select('id, escala_valorativa')
+                        .match({
+                            curso_id: modal.data.curso_id,
+                            materia_id: modal.data.materia_id,
+                            periodo: modal.data.periodo,
+                            anio_academico_id: activeYear.id
+                        });
+
+                    if (gradesData && gradesData.length > 0 && scalesData) {
+                        for (const grade of gradesData) {
+                            if (grade.escala_valorativa) {
+                                const scaleMatch = scalesData.find(s => s.escala === grade.escala_valorativa);
+                                if (scaleMatch) {
+                                    const nuevoLogroCalculado = `${scaleMatch.verbo} ${formData.logro}`;
+                                    await supabase.from('calificaciones')
+                                        .update({ logro_calculado: nuevoLogroCalculado })
+                                        .eq('id', grade.id);
+                                }
+                            }
+                        }
+                    }
+                } catch (syncErr) {
+                    console.error('Error al sincronizar calificaciones:', syncErr);
+                }
+
+                mostrarToast('Logro actualizado y calificaciones sincronizadas', 'success');
             } else {
                 const { error } = await supabase.from('logros_generales').insert([payload]);
                 if (error) throw error;
