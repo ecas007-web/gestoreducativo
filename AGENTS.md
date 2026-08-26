@@ -19,8 +19,8 @@ Objetivo: Crear una aplicación web para un jardín infantil que permita el regi
 preferencias generales:
     •	 todo los textos de la aplicacion deben estan en español
 
-Las funcionalidades que debe tener la app son estas:
-    - Registro de usuario y Autenticación:
+ Las funcionalidades que debe tener la app son estas:
+    2)  Registro de usuario y Autenticación:
         1.	Loggin:  (estudiante, docente, administrador) si es estudiante debe pedir el documento del estudiante, correo y password
         Si es docente o administrador: pedir correo y password
         2.	Solo el administrador podra  realizar el registro inicial de  estudiante en un modulo con sus datos básicos (tipo de documento, documentos nombres y apellidos, curso)
@@ -34,18 +34,18 @@ Las funcionalidades que debe tener la app son estas:
             	Asignar  las materias a los cursos
             	
 
-    - Modulo de creación de administrador
+    3) - Modulo de creación de administrador
         •	Debe tener un opción para crear usuario administrador
         •	Se debe parametricar un correo en las variables de entorno el correo que pueda crear administrador
         •	Al crear el administrador debe pedir el correo, tipo de documento, documento y nombre y contraseña
         •	Este correo se debe validar con el que esta en la variable de entorno y si es correcto se debe enviar un correo de verificación para que confírme la creación desde este correo
         •	El correo que quedara en la variable de entorno es :  ecas007@hotmai.es
 
-    - Registro de docente:
+    4)  Registro de docente:
         El administrador crea el docente con los datos (tipo de documento, documento , nombre y apellido, grado, contraseña)
         El docente cuando se logue debe tener un modulo para cambio de contraseña, debe poder camblar la contraseña colocando la contraseña anterior y la nueva contraseña digitada dos veces 
 
-    - Control de año academico
+    5) Control de año academico
         •	debe tener un modulo de parametrización de año que solo es manipulado por el administrador, en este modulo se crean, editan los años,
         •	el año se crea con los campos (año, estado, fecha de inicio, fecha fin)
         •	solo se podrá tener un solo año activo
@@ -53,7 +53,7 @@ Las funcionalidades que debe tener la app son estas:
         •	En el modulo de estudiante debe tener el filtro por año
         •	En el modulo de registro calificaciones debe esta el filtro por año y solo se mostrara el año que este activo, la calificación que se registre debe quedar con el año correspondiente
 
-    - Parametrización de logros
+    6) Parametrización de logros
         •	Se debe tener un modulo llamado “parametrización  de lo logro general” el cual podrá ser parametrizado por el docente o el administrador.
                 El modulo debe tener los campos:  
             o	Materia: si se loguea un docente este solo podrá gestionar los logros del curso que tenga asigando
@@ -67,7 +67,7 @@ Las funcionalidades que debe tener la app son estas:
             	rango máximo: numero de 1 decimal  (valor entre 0,0 y 5,6)
             	verbo: es un texto que se concatenara mas adelante al inicio de cada logro general cuando se este calificando
 
-    - asignación de calificaciones:
+    7)  asignación de calificaciones:
         en este modulo se diligencias las notas por estudiantes de la siguiente manera:
         nota: las notas solo se manejan de 0 a 5.
             o	tarea en clase: 4 notas cuyo promedio  equivale a un 30%
@@ -80,13 +80,13 @@ Las funcionalidades que debe tener la app son estas:
 
         •	logro: solo se muestra cuando se tengan la nota final , el sistema debe buscar el logro en el modulo “parametrización  de lo logro general” para el curso y la materia correspondiente en este campo debe mostrarse la concatenación de (verbo + logro) , este se debe almacenar concatenado
 
-    Modulo de gestion de estudiante:
+    8) Modulo de gestion de estudiante:
         en el modulo de consulta del estudiente (Gestión de Estudiantes) quiero que se muestren tambien estos campos: (FECHA de nacimiento, SEXO ,LUGAR NACIMIENTO, DIRECCION, EMAIL, TELEFONO, CELULAR, EPS, TIPO DE SANGRE, IDENTIFICACION PADRE, NOMBRE PADRE, OCUPACION_PADRE, TELEFONO PADRE, NOMBRE MADRE, IDENTIFICACION MADRE, OCUPACION MADRE, TELEFONO MADRE, RELIGION, DEBILIDADES, FORTALEZAS), verifica que esten en la base de datos y si no estan los creas para que persistan, estos mismos campos se deben mostrar en: "consulta de estudiante" y "edicion de estudiante".
 
         nota: en el modulo de "Completar Registro Estudiante" también deben estar todos estos campos como obligatorios excepto, ese modulo también debería ser un modal ya que tendrá muchos campos, puede ser igual al edición, solo que el de edición no deben  estar  como obligatorios estos campos nuevos
 
 
-    - Modulo de pagos:
+    9) Modulo de pagos:
         este se utilizara para el registro de los pagos de las pensiones de los estudiantes del año en curso.
         Se debe permitir el registro de pago de la pensión del estudiante con los siguientes campos: 
 
@@ -104,7 +104,7 @@ Las funcionalidades que debe tener la app son estas:
         nota: en el modulo “Parámetros de Años Académicos” se debe adicionar el campo valor de pensión, colocar para este año el valor de $210000
         hay estudiantes con descuento especial para todo el año, se debe permitir registra el descuento para que no salga en mora al sacar el reporte de los estudiantes  con mora
 
-reportes:
+10) reportes:
     se debe agragar un boton en el modulo de estudiantes para generar un certificado estudiantil tomando la plantilla ubicada en la ruta public/plantillas/plantilla_certificado.docx
     los parámetros esta entre el símbolo %% 
     •	apellidos y nombre
@@ -114,7 +114,7 @@ reportes:
     •	fecha actual: ejemplo de formato; “domingo 8 de marzo de 2026”
 
 
-modulo de comportamiento:
+11) modulo de comportamiento:
 se debe crear un modulo para gestionar los comportamientos del estudiante por periodo (son 4 periodos), este modulo debe tener los campos:
 •	estudiante
 •	periodo (primer periodo, segundo periodo, tercer periodo, cuarto periodo )
@@ -125,7 +125,7 @@ los filtros que se manejan son: periodo, grado
 
 
 
- boletines
+12) boletines
  en el modulo "generador de boletines" se debe agragar un boton para generar boletines para todos los estudiantes del filtro seleccionado, tomando la plantilla ubicada en la ruta public/plantillas/plantilla_boletin.docx
     
 los parámetros esta entre el símbolo %% 
@@ -147,10 +147,10 @@ los parámetros esta entre el símbolo %%
 
 
 
- reporte de observador del alumno
+13) reporte de observador del alumno
  crear un modulo para generar reporte de observador del alumno en este modulo se debe agragar un boton para generar reporte de observador del alumno para todos los estudiantes del filtro seleccionado, tomando la plantilla ubicada en la ruta public/plantillas/plantilla_observador.docx
     
-los parámetros esta entre el símbolo %% 
+ los parámetros esta entre el símbolo %% 
 
       el encabezado son los datos que estan en la tabla estudiantes
    
@@ -162,18 +162,18 @@ los parámetros esta entre el símbolo %%
         -   estrategias
         -   observaciones
 
-los parametros del documento tiene los mismo nombres que se entuentran en las tablas de estudiantes y estudiante_observador
+    los parametros del documento tiene los mismo nombres que se entuentran en las tablas de estudiantes y estudiante_observador
 
-se debe permitir buscar por:
+    se debe permitir buscar por:
     •   estudiante
     •   periodo
     •   grado
  
- debe terner las mismas obsiones del modulo de boletines
+    debe terner las mismas obsiones del modulo de boletines
 
 
 
-CERTIFICADO ESTUDIANTIL
+14) CERTIFICADO ESTUDIANTIL
  se debe agragar un boton en el modulo de estudiantes para generar un certificado estudiantil tomando la plantilla ubicada en la ruta public/plantillas/plantilla_certificado.docx
     los parámetros esta entre el símbolo %% 
     •	apellidos y nombre
@@ -182,7 +182,7 @@ CERTIFICADO ESTUDIANTIL
     •	año
     •	fecha actual: ejemplo de formato; “domingo 8 de marzo de 2026”
 
-Modulo de actividades:
+15) Modulo de actividades:
     Este es un modulo donde se gestionan las actividades del periodo, las actividades son:
     -	Tarea en clase 1
     -	Tarea en clase 2
@@ -196,7 +196,7 @@ Modulo de actividades:
     Actividad, descripción, periodo, asignatura, se debe permitir crear, modificar tanto el adminstrador como el docente
     En el modulo de carga de notas al pasar el mouse por la celda de tc_1, tc_2, tc_3, tc_4, th_1, th_2, th_3, th_4 se debe mostrar un tooltips con las descripción de la actividad parametrizada
 
-Modulo de Observador del alumno
+16) Modulo de Observador del alumno
     Se debe crear un modulo para gestionar el observador del alumno, este modulo contendrá los siguientes campos:
     •	Periodo (primer periodo, segundo periodo, tercer periodo, cuarto periodo)
     •	Fortaleza: descripción de su fortaleza
@@ -206,7 +206,7 @@ Modulo de Observador del alumno
     Este modulo es gestionado por el docente o administrador y debe permitir la creación y edición de la información
     Debe tener filtros por: curso . periodo, estudiante
 
-Modulo de cierre de periodo
+17) Modulo de cierre de periodo
     •	En este modulo se podrá gestionar el estado de los periodos (abierto, cerrado) solo por el adminstrador
     •	Ya sabemos que manejamos 4 periodos 
     •	Se pueden tener varios periodos abiertos al tiempo
@@ -214,13 +214,13 @@ Modulo de cierre de periodo
     •	En el modulo de logros generales Tampoco se podrá agregar ni editar logros de un periodo cerrado
     •	En el modulo de comportamiento Tampoco se podrá editar los registros  de un periodo cerrado
 
-dasboard del estudiante
+18) dasboard del estudiante
 
     cuando inicio sesion como estudiante, el el menu calificaciones muestre el estado de mi pago, quiero que alli muestre: al dia, si el mes en curso esta pagado en si totalidad; en mora si tiene saldo pendiente del mes en curso, y que muestre el mes actual
     
     En el dasboard del estudiante permiteme visualizar las calificaciones del perido y año seleccioando, solo si es estudiante se encuentra al dia, debes buscar las calificaiones y mostrar: la dimension, la escala, nombre del docente, el periodo y el logro concatenado
 
-Estado del estudiante:
+19) Estado del estudiante:
     quiero que en el modulo de estudiantes se le adciones un estado (activo, retirado) solo el adminstrador podra cambiar el estado
     cuando el estudiante esta retirado no se podran mostrar sus calificaciones ni permitir el ingreso al modulo de calificaciones
     cuando el estudiante esta activo se podran mostrar sus calificaciones y permitir el ingreso al modulo de calificaciones
@@ -230,6 +230,27 @@ Estado del estudiante:
     cuando se ingresa con rol de estudiante no se debe mostrar el estado del estudiante
 
 
+20) confirmacion de cupo de año entrante y actualizacion de datos
+
+    cuando se cierra el año lectivo el estudiante debe confirmar su cupo para el siguiente año y actualizar sus datos, para esto desde un link que se le entregara a los padres de debe abrir se abre el modulo de confirmacion de cupo y actualizacion de datos del estudiante, este modulo solo se podra abrir al digitar el documento del estudiante y la fechas de nacimiento, 
+    
+    1 - debe preguntrar si desea confirmar el cupo para el el grado (mostrar grado siguiente del estudiante), el orden de grados son 
+      a) parvulo
+      b) pre jardin
+      c) jardin
+      d) tarnsicion
+
+    2 - si se lecciona no se debe crear un registro en la tabla estudiante_confirmacion_cupo con el id del estudiante y fecha actual con estado no confirmado
+    3 - si es si debe continuar con la actualizacion de datos
+
+    y debe tener las mismas opciones que el modulo de estudiantes pero solo para actualizacion de datos, los campos que no se peuden actualizar son: documento y tipo de documento
+
+    todos los campos son obligatorios y una vez se diligencien los datos se podra confirmar el cupo, cuando un estudiante confirma su cupo se debe crear un registro en la tabla estudiante_confirmacion_cupo con la fecha de confirmacion y el documento del estudiante, año, grado y estado confirmado
+    se debe mostrar un mensaje al estudiante si confirmado su cupo
+
+    se debe crear un modulo para para verificacion de estudiantes confirmados 
+    en el que se muestre el documento, nombre, grado, año, fecha de confirmacion, estado confirmado debe tener filtros por estudiante, año confirmado y estado confirmado
+    los usuarios que tengan el rol de administrador podran ver este modulo
 
 
 
