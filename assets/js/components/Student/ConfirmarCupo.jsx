@@ -312,7 +312,7 @@ export const ConfirmarCupo = () => {
                                 <h4 className="text-sm font-bold text-blue-600 uppercase tracking-wider border-b pb-1">Datos Personales</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                     <div className="form-group">
-                                        <label className="form-label">Fecha Nacimiento (Solo Lectura)</label>
+                                        <label className="form-label">Fecha Nacimiento</label>
                                         <input type="date" disabled className="form-input bg-slate-100" value={formData.fecha_nac} />
                                     </div>
                                     <div className="form-group">
