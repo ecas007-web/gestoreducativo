@@ -205,7 +205,7 @@ export const ConfirmarCupo = () => {
             <div className="max-w-4xl mx-auto w-full">
                 {/* Cabecera común */}
                 <div className="text-center mb-8">
-                    <img className="mx-auto h-24 w-auto" src="/public/images/escudo.webp" alt="Escudo" onError={(e) => { e.target.src = 'https://placehold.co/100' }} />
+                    <img className="mx-auto h-24 w-auto" src="/images/escudo.webp" alt="Escudo" onError={(e) => { e.target.src = 'https://placehold.co/100' }} />
                     <h2 className="mt-4 text-3xl font-black text-slate-800 tracking-tight">
                         Jardín Infantil Mis Pequeños Genios
                     </h2>

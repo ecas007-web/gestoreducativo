@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext.jsx';
 import { useNavigationGuard } from '../context/NavigationContext.jsx';
@@ -9,6 +9,40 @@ export const Layout = ({ children, roleTitle, navigation }) => {
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const { isDirty, showConfirmModal, attemptNavigation, confirmNavigation, cancelNavigation } = useNavigationGuard();
+
+    const [openGroups, setOpenGroups] = useState(() => {
+        const initial = {};
+        const hasSingleSection = navigation.filter(g => g.title).length === 1;
+
+        navigation.forEach(group => {
+            if (group.title) {
+                const hasActiveLink = group.links.some(link => location.pathname.startsWith(link.path));
+                initial[group.title] = hasActiveLink || hasSingleSection;
+            }
+        });
+        return initial;
+    });
+
+    const toggleGroup = (title) => {
+        setOpenGroups(prev => ({
+            ...prev,
+            [title]: !prev[title]
+        }));
+    };
+
+    useEffect(() => {
+        const hasSingleSection = navigation.filter(g => g.title).length === 1;
+        navigation.forEach(group => {
+            if (group.title) {
+                const hasActiveLink = group.links.some(link => location.pathname.startsWith(link.path));
+                if (hasActiveLink) {
+                    setOpenGroups(prev => ({ ...prev, [group.title]: true }));
+                } else if (hasSingleSection) {
+                    setOpenGroups(prev => ({ ...prev, [group.title]: true }));
+                }
+            }
+        });
+    }, [location.pathname, navigation]);
 
     const nombre = `${profile?.nombres || ''} ${profile?.apellidos || ''}`.trim() || profile?.correo || 'Usuario';
     const initial = nombre.charAt(0).toUpperCase();
@@ -34,32 +68,53 @@ export const Layout = ({ children, roleTitle, navigation }) => {
                     </div>
                 </div>
 
-                <nav className="sidebar-nav">
-                    {navigation.map((group, idx) => (
-                        <React.Fragment key={idx}>
-                            {group.title && sidebarOpen && <p className="sidebar-section-title mt-4">{group.title}</p>}
-                            {group.links.map(link => (
-                                <Link
-                                    key={link.path}
-                                    to={link.path}
-                                    onClick={(e) => {
-                                        if (window.innerWidth <= 1024) {
-                                            setSidebarOpen(false);
-                                        }
-                                        if (location.pathname.startsWith(link.path)) return;
-                                        if (isDirty) {
-                                            e.preventDefault();
-                                            attemptNavigation(link.path);
-                                        }
-                                    }}
-                                    className={`sidebar-link ${location.pathname.startsWith(link.path) ? 'active' : ''}`}
-                                >
-                                    <span className="material-symbols-outlined sidebar-icon">{link.icon}</span>
-                                    <span className="sidebar-label">{link.label}</span>
-                                </Link>
-                            ))}
-                        </React.Fragment>
-                    ))}
+                <nav className="sidebar-nav overflow-y-auto max-h-[calc(100vh-180px)] pr-1 select-none">
+                    {navigation.map((group, idx) => {
+                        const hasTitle = !!group.title;
+                        const isOpen = !hasTitle || !!openGroups[group.title];
+
+                        return (
+                            <div key={idx} className="sidebar-group w-full">
+                                {hasTitle && sidebarOpen ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => toggleGroup(group.title)}
+                                        className="sidebar-section-title w-full flex items-center justify-between text-left hover:text-slate-300 transition-colors duration-150 py-3 mt-2 border-none bg-transparent cursor-pointer font-bold uppercase tracking-wider text-[1.2rem]"
+                                    >
+                                        <span>{group.title}</span>
+                                        <span className={`material-symbols-outlined text-base transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>
+                                            keyboard_arrow_down
+                                        </span>
+                                    </button>
+                                ) : (
+                                    hasTitle && <div className="h-px bg-slate-800/60 my-3" />
+                                )}
+
+                                <div className={`space-y-1 transition-all duration-300 overflow-hidden ${isOpen ? 'max-h-[500px] opacity-100 visible' : 'max-h-0 opacity-0 invisible'}`}>
+                                    {group.links.map(link => (
+                                        <Link
+                                            key={link.path}
+                                            to={link.path}
+                                            onClick={(e) => {
+                                                if (window.innerWidth <= 1024) {
+                                                    setSidebarOpen(false);
+                                                }
+                                                if (location.pathname.startsWith(link.path)) return;
+                                                if (isDirty) {
+                                                    e.preventDefault();
+                                                    attemptNavigation(link.path);
+                                                }
+                                            }}
+                                            className={`sidebar-link ${location.pathname.startsWith(link.path) ? 'active' : ''}`}
+                                        >
+                                            <span className="material-symbols-outlined sidebar-icon">{link.icon}</span>
+                                            <span className="sidebar-label">{link.label}</span>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
                 </nav>
 
                 <div className="sidebar-footer">
