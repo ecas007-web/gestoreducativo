@@ -33,6 +33,8 @@ import { StudentDashboard } from './components/Student/Dashboard.jsx';
 import { StudentProfile } from './components/Student/Profile.jsx';
 import { StudentObserver } from './components/Common/StudentObserver.jsx';
 import { ObserverReports } from './components/Common/ObserverReports.jsx';
+import { ConfirmarCupo } from './components/Student/ConfirmarCupo.jsx';
+import { ConfirmationsVerifier } from './components/Admin/ConfirmationsVerifier.jsx';
 
 /**
  * Protector de Rutas: Verifica sesión y roles
@@ -88,7 +90,8 @@ const App = () => {
             title: 'Personas',
             links: [
                 { path: '/admin/estudiantes', icon: 'child_care', label: 'Estudiantes' },
-                { path: '/admin/docentes', icon: 'person_apron', label: 'Docentes' }
+                { path: '/admin/docentes', icon: 'person_apron', label: 'Docentes' },
+                { path: '/admin/confirmados', icon: 'how_to_reg', label: 'Verificar Cupos' }
             ]
         },
         {
@@ -134,6 +137,7 @@ const App = () => {
                     <Routes>
                         <Route path="/login" element={<LoginPage />} />
                         <Route path="/reset-password" element={<ResetPassword />} />
+                        <Route path="/confirmar-cupo" element={<ConfirmarCupo />} />
 
                         {/* Rutas de Administrador */}
                         <Route path="/admin/*" element={
@@ -158,6 +162,7 @@ const App = () => {
                                         <Route path="boletines" element={<ReportsManager />} />
                                         <Route path="observador" element={<StudentObserver />} />
                                         <Route path="reporte-observador" element={<ObserverReports />} />
+                                        <Route path="confirmados" element={<ConfirmationsVerifier />} />
                                         <Route path="*" element={<Navigate to="dashboard" replace />} />
                                     </Routes>
                                 </Layout>
