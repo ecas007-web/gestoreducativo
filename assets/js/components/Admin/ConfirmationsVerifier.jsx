@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../config.jsx';
 import { mostrarToast } from '../../utils.jsx';
 
 export const ConfirmationsVerifier = () => {
-    const [confirmations, setConfirmations] = useState([]);
+    const [rawEstudiantes, setRawEstudiantes] = useState([]);
+    const [rawConfirmations, setRawConfirmations] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [filters, setFilters] = useState({ query: '', status: '', year: '' });
+    const [filters, setFilters] = useState({ query: '', status: '', year: '', grade: '' });
     const [availableYears, setAvailableYears] = useState([]);
 
     useEffect(() => {
@@ -15,34 +16,111 @@ export const ConfirmationsVerifier = () => {
     const loadData = async () => {
         setLoading(true);
         try {
-            // Fetch confirmation records with student details
-            const { data, error } = await supabase
+            // 1. Obtener año académico activo para calcular el año entrante por defecto
+            const { data: activeYearData, error: activeYearError } = await supabase
+                .from('anios_academicos')
+                .select('*')
+                .eq('estado', true)
+                .maybeSingle();
+
+            if (activeYearError) throw activeYearError;
+
+            const defaultNextYear = activeYearData ? activeYearData.anio + 1 : new Date().getFullYear() + 1;
+
+            // 2. Traer todos los estudiantes activos (con sus respectivos cursos actuales)
+            const { data: estudiantes, error: estError } = await supabase
+                .from('estudiantes')
+                .select('*, cursos(*)')
+                .eq('estado', 'activo');
+
+            if (estError) throw estError;
+
+            // 3. Traer todas las confirmaciones de cupo de la tabla estudiante_confirmacion_cupo
+            const { data: confirmaciones, error: confError } = await supabase
                 .from('estudiante_confirmacion_cupo')
-                .select('*, estudiantes(nombres, apellidos)')
-                .order('fecha_confirmacion', { ascending: false });
+                .select('*');
 
-            if (error) throw error;
-            setConfirmations(data || []);
+            if (confError) throw confError;
 
-            // Extract unique years
-            const years = Array.from(new Set((data || []).map(c => c.anio))).sort((a, b) => b - a);
+            setRawEstudiantes(estudiantes || []);
+            setRawConfirmations(confirmaciones || []);
+
+            // Generar la lista de años disponibles de confirmación (basado en confirmaciones + año entrante por defecto)
+            const years = Array.from(new Set([
+                defaultNextYear,
+                ...(confirmaciones || []).map(c => c.anio)
+            ])).sort((a, b) => b - a);
+
             setAvailableYears(years);
+
+            // Seleccionar por defecto el año entrante en el filtro de año
+            setFilters(prev => ({
+                ...prev,
+                year: prev.year || defaultNextYear.toString()
+            }));
+
         } catch (err) {
-            mostrarToast('Error al cargar confirmaciones: ' + err.message, 'error');
+            mostrarToast('Error al cargar datos de verificación: ' + err.message, 'error');
         } finally {
             setLoading(false);
         }
     };
 
-    const filteredData = confirmations.filter(item => {
-        const studentName = item.estudiantes ? `${item.estudiantes.nombres} ${item.estudiantes.apellidos}` : '';
-        const doc = item.documento_estudiante || '';
-        const matchesQuery = (studentName + doc).toLowerCase().includes(filters.query.toLowerCase());
-        const matchesStatus = !filters.status || item.estado === filters.status;
-        const matchesYear = !filters.year || item.anio.toString() === filters.year;
+    const getNextGradeName = (currentName) => {
+        if (!currentName) return '';
+        const clean = currentName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+        if (clean.includes("parvulo")) return "Prejardín";
+        if (clean.includes("pre jardin") || clean.includes("prejardin")) return "Jardín";
+        if (clean.includes("jardin")) return "Transición";
+        return "Transición (Último grado)";
+    };
 
-        return matchesQuery && matchesStatus && matchesYear;
-    });
+    // Lista de grados actuales únicos extraídos de los estudiantes
+    const availableGrades = useMemo(() => {
+        const gradesMap = {};
+        rawEstudiantes.forEach(est => {
+            if (est.cursos) {
+                gradesMap[est.cursos.id] = est.cursos.nombre;
+            }
+        });
+        return Object.entries(gradesMap).map(([id, nombre]) => ({ id, nombre }));
+    }, [rawEstudiantes]);
+
+    // Combinación de datos en memoria para el año consultado
+    const processedData = useMemo(() => {
+        const queryYear = parseInt(filters.year) || (availableYears[0] || new Date().getFullYear() + 1);
+
+        return rawEstudiantes.map(est => {
+            // Buscar si tiene confirmación para el año de consulta
+            const conf = rawConfirmations.find(c => c.estudiante_id === est.id && c.anio === queryYear);
+
+            return {
+                id: est.id,
+                documento_estudiante: est.numero_documento,
+                nombre_completo: `${est.apellidos || ''}, ${est.nombres || ''}`.trim(),
+                grado_actual_id: est.curso_id,
+                grado_actual_nombre: est.cursos?.nombre || 'Sin grado',
+                grado_destino: conf ? conf.grado : getNextGradeName(est.cursos?.nombre || ''),
+                anio: queryYear,
+                fecha_confirmacion: conf ? conf.fecha_confirmacion : null,
+                estado: conf ? conf.estado : 'sin_responder' // 'confirmado', 'no confirmado', 'sin_responder'
+            };
+        });
+    }, [rawEstudiantes, rawConfirmations, filters.year, availableYears]);
+
+    // Filtros aplicados a los datos unificados
+    const filteredData = useMemo(() => {
+        return processedData.filter(item => {
+            const matchesQuery = item.nombre_completo.toLowerCase().includes(filters.query.toLowerCase()) || 
+                                 item.documento_estudiante.includes(filters.query.trim());
+                                 
+            const matchesStatus = !filters.status || item.estado === filters.status;
+            const matchesYear = !filters.year || item.anio.toString() === filters.year;
+            const matchesGrade = !filters.grade || item.grado_actual_id === filters.grade;
+
+            return matchesQuery && matchesStatus && matchesYear && matchesGrade;
+        });
+    }, [processedData, filters]);
 
     const formatFecha = (isoString) => {
         if (!isoString) return '';
@@ -64,10 +142,10 @@ export const ConfirmationsVerifier = () => {
             </div>
 
             {/* Tarjetas de Estadísticas */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="card bg-white p-6 flex items-center justify-between shadow-sm">
                     <div>
-                        <p className="text-sm font-bold text-slate-400 uppercase">Total Registros</p>
+                        <p className="text-sm font-bold text-slate-400 uppercase">Estudiantes Activos</p>
                         <h3 className="text-3xl font-black text-slate-800 mt-1">{filteredData.length}</h3>
                     </div>
                     <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-600">
@@ -76,7 +154,7 @@ export const ConfirmationsVerifier = () => {
                 </div>
                 <div className="card bg-white p-6 flex items-center justify-between shadow-sm">
                     <div>
-                        <p className="text-sm font-bold text-slate-400 uppercase">Cupos Confirmados</p>
+                        <p className="text-sm font-bold text-slate-400 uppercase">Confirmados</p>
                         <h3 className="text-3xl font-black text-emerald-600 mt-1">
                             {filteredData.filter(c => c.estado === 'confirmado').length}
                         </h3>
@@ -87,7 +165,7 @@ export const ConfirmationsVerifier = () => {
                 </div>
                 <div className="card bg-white p-6 flex items-center justify-between shadow-sm">
                     <div>
-                        <p className="text-sm font-bold text-slate-400 uppercase">Cupos No Confirmados</p>
+                        <p className="text-sm font-bold text-slate-400 uppercase">No Confirmados</p>
                         <h3 className="text-3xl font-black text-rose-600 mt-1">
                             {filteredData.filter(c => c.estado === 'no confirmado').length}
                         </h3>
@@ -96,11 +174,22 @@ export const ConfirmationsVerifier = () => {
                         <span className="material-symbols-outlined">cancel</span>
                     </div>
                 </div>
+                <div className="card bg-white p-6 flex items-center justify-between shadow-sm">
+                    <div>
+                        <p className="text-sm font-bold text-slate-400 uppercase">Sin Responder</p>
+                        <h3 className="text-3xl font-black text-amber-600 mt-1">
+                            {filteredData.filter(c => c.estado === 'sin_responder').length}
+                        </h3>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600">
+                        <span className="material-symbols-outlined">pending</span>
+                    </div>
+                </div>
             </div>
 
             {/* Barra de Filtros */}
             <div className="card p-6 shadow-sm bg-white">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="form-group">
                         <label className="form-label">Buscar Estudiante</label>
                         <div className="relative">
@@ -130,6 +219,20 @@ export const ConfirmationsVerifier = () => {
                     </div>
 
                     <div className="form-group">
+                        <label className="form-label">Grado Actual</label>
+                        <select
+                            className="form-input"
+                            value={filters.grade}
+                            onChange={e => setFilters({ ...filters, grade: e.target.value })}
+                        >
+                            <option value="">Todos los grados actuales</option>
+                            {availableGrades.map(g => (
+                                <option key={g.id} value={g.id}>{g.nombre}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="form-group">
                         <label className="form-label">Estado de Confirmación</label>
                         <select
                             className="form-input"
@@ -139,6 +242,7 @@ export const ConfirmationsVerifier = () => {
                             <option value="">Todos los estados</option>
                             <option value="confirmado">Confirmado</option>
                             <option value="no confirmado">No confirmado</option>
+                            <option value="sin_responder">Sin responder</option>
                         </select>
                     </div>
                 </div>
@@ -160,6 +264,7 @@ export const ConfirmationsVerifier = () => {
                                 <tr className="border-b bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider">
                                     <th className="p-4">Documento</th>
                                     <th className="p-4">Estudiante</th>
+                                    <th className="p-4">Grado Actual</th>
                                     <th className="p-4">Grado Destino</th>
                                     <th className="p-4">Año Académico</th>
                                     <th className="p-4">Fecha Registro</th>
@@ -173,30 +278,40 @@ export const ConfirmationsVerifier = () => {
                                             {item.documento_estudiante}
                                         </td>
                                         <td className="p-4 font-bold text-slate-800">
-                                            {item.estudiantes ? `${item.estudiantes.apellidos}, ${item.estudiantes.nombres}` : 'No encontrado'}
+                                            {item.nombre_completo}
+                                        </td>
+                                        <td className="p-4">
+                                            <span className="inline-flex items-center gap-1 font-semibold text-slate-600">
+                                                <span className="material-symbols-outlined text-base text-slate-400">grade</span>
+                                                {item.grado_actual_nombre}
+                                            </span>
                                         </td>
                                         <td className="p-4">
                                             <span className="inline-flex items-center gap-1 font-semibold text-indigo-600">
                                                 <span className="material-symbols-outlined text-base">school</span>
-                                                {item.grado}
+                                                {item.grado_destino}
                                             </span>
                                         </td>
                                         <td className="p-4 font-bold text-slate-800">
                                             {item.anio}
                                         </td>
                                         <td className="p-4 text-slate-500 font-medium">
-                                            {formatFecha(item.fecha_confirmacion)}
+                                            {item.fecha_confirmacion ? formatFecha(item.fecha_confirmacion) : (
+                                                <span className="text-slate-400 italic font-normal">Pendiente</span>
+                                            )}
                                         </td>
                                         <td className="p-4 text-center">
                                             <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase ${
                                                 item.estado === 'confirmado'
                                                     ? 'bg-emerald-100 text-emerald-800'
-                                                    : 'bg-rose-100 text-rose-800'
+                                                    : item.estado === 'no confirmado'
+                                                    ? 'bg-rose-100 text-rose-800'
+                                                    : 'bg-amber-100 text-amber-800'
                                             }`}>
                                                 <span className="material-symbols-outlined text-xs">
-                                                    {item.estado === 'confirmado' ? 'check_circle' : 'cancel'}
+                                                    {item.estado === 'confirmado' ? 'check_circle' : item.estado === 'no confirmado' ? 'cancel' : 'pending'}
                                                 </span>
-                                                {item.estado}
+                                                {item.estado === 'sin_responder' ? 'Sin responder' : item.estado}
                                             </span>
                                         </td>
                                     </tr>
