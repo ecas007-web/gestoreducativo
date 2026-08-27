@@ -6,8 +6,9 @@ export const ConfirmationsVerifier = () => {
     const [rawEstudiantes, setRawEstudiantes] = useState([]);
     const [rawConfirmations, setRawConfirmations] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [filters, setFilters] = useState({ query: '', status: '', year: '', grade: '' });
+    const [filters, setFilters] = useState({ query: '', status: '', year: '', grades: [] });
     const [availableYears, setAvailableYears] = useState([]);
+    const [isGradeDropdownOpen, setIsGradeDropdownOpen] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -56,7 +57,8 @@ export const ConfirmationsVerifier = () => {
             // Seleccionar por defecto el año entrante en el filtro de año
             setFilters(prev => ({
                 ...prev,
-                year: prev.year || defaultNextYear.toString()
+                year: prev.year || defaultNextYear.toString(),
+                grades: []
             }));
 
         } catch (err) {
@@ -116,7 +118,7 @@ export const ConfirmationsVerifier = () => {
                                  
             const matchesStatus = !filters.status || item.estado === filters.status;
             const matchesYear = !filters.year || item.anio.toString() === filters.year;
-            const matchesGrade = !filters.grade || item.grado_actual_id === filters.grade;
+            const matchesGrade = filters.grades.length === 0 || filters.grades.includes(item.grado_actual_id);
 
             return matchesQuery && matchesStatus && matchesYear && matchesGrade;
         });
@@ -218,18 +220,79 @@ export const ConfirmationsVerifier = () => {
                         </select>
                     </div>
 
-                    <div className="form-group">
+                    <div className="form-group relative">
                         <label className="form-label">Grado Actual</label>
-                        <select
-                            className="form-input"
-                            value={filters.grade}
-                            onChange={e => setFilters({ ...filters, grade: e.target.value })}
-                        >
-                            <option value="">Todos los grados actuales</option>
-                            {availableGrades.map(g => (
-                                <option key={g.id} value={g.id}>{g.nombre}</option>
-                            ))}
-                        </select>
+                        <div className="relative">
+                            <button
+                                type="button"
+                                onClick={() => setIsGradeDropdownOpen(!isGradeDropdownOpen)}
+                                className="form-input flex items-center justify-between text-left cursor-pointer bg-white"
+                            >
+                                <span className="truncate">
+                                    {filters.grades.length === 0
+                                        ? 'Todos los grados actuales'
+                                        : filters.grades.length === availableGrades.length
+                                        ? 'Todos los grados actuales'
+                                        : availableGrades
+                                            .filter(g => filters.grades.includes(g.id))
+                                            .map(g => g.nombre)
+                                            .join(', ')
+                                    }
+                                </span>
+                                <span className="material-symbols-outlined text-slate-400 text-lg">
+                                    {isGradeDropdownOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}
+                                </span>
+                            </button>
+
+                            {isGradeDropdownOpen && (
+                                <>
+                                    {/* Capa invisible para cerrar el dropdown al hacer click fuera */}
+                                    <div 
+                                        className="fixed inset-0 z-10" 
+                                        onClick={() => setIsGradeDropdownOpen(false)}
+                                    />
+                                    <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg p-2 z-20 space-y-2">
+                                        <label className="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer text-sm font-semibold text-slate-700">
+                                            <input
+                                                type="checkbox"
+                                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+                                                checked={filters.grades.length === availableGrades.length}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setFilters(prev => ({ ...prev, grades: availableGrades.map(g => g.id) }));
+                                                    } else {
+                                                        setFilters(prev => ({ ...prev, grades: [] }));
+                                                    }
+                                                }}
+                                            />
+                                            <span>[ Seleccionar todos ]</span>
+                                        </label>
+                                        <hr className="border-slate-100 my-1" />
+                                        {availableGrades.map(g => {
+                                            const isChecked = filters.grades.includes(g.id);
+                                            return (
+                                                <label key={g.id} className="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer text-sm text-slate-700">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+                                                        checked={isChecked}
+                                                        onChange={() => {
+                                                            setFilters(prev => {
+                                                                const newGrades = isChecked
+                                                                    ? prev.grades.filter(id => id !== g.id)
+                                                                    : [...prev.grades, g.id];
+                                                                return { ...prev, grades: newGrades };
+                                                            });
+                                                        }}
+                                                    />
+                                                    <span>{g.nombre}</span>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </div>
 
                     <div className="form-group">
