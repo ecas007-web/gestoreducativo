@@ -259,11 +259,11 @@ export const ObserverReports = () => {
 
                 <div className="flex gap-3 p-4 bg-white">
                     <button onClick={() => handleGenerateBulk('single_doc')} className="btn btn-primary flex-1 py-3" disabled={generating || !selectedCourse}>
-                        <span className="material-symbols-outlined">description</span> DOCX Consolidado
+                        <span className="material-symbols-outlined">description</span> DESCARGAR OBSERVADOR
                     </button>
-                    <button onClick={() => handleGenerateBulk('zip')} className="btn btn-secondary flex-1 py-3" disabled={generating || !selectedCourse}>
+                    {/*<button onClick={() => handleGenerateBulk('zip')} className="btn btn-secondary flex-1 py-3" disabled={generating || !selectedCourse}>
                         <span className="material-symbols-outlined">folder_zip</span> Descargar ZIP
-                    </button>
+                    </button>*/}
                 </div>
             </div>
 
@@ -272,12 +272,12 @@ export const ObserverReports = () => {
             ) : previewData ? (
                 <div className="space-y-4">
                     <div className="flex justify-end gap-2">
-                        <button onClick={() => window.print()} className="btn btn-ghost border-slate-200">
+                        {/*<button onClick={() => window.print()} className="btn btn-ghost border-slate-200">
                             <span className="material-symbols-outlined text-[20px]">print</span> Imprimir
-                        </button>
-                        <button onClick={() => handleGenerateSingle(previewData)} className="btn btn-primary" disabled={generating}>
+                        </button>*/}
+                        {/* <button onClick={() => handleGenerateSingle(previewData)} className="btn btn-primary" disabled={generating}>
                             <span className="material-symbols-outlined text-[20px]">download</span> Descargar DOCX
-                        </button>
+                        </button> */}
                     </div>
 
                     <div className="preview-paper bg-white shadow-2xl mx-auto p-[1.5cm] md:p-[2cm] min-h-[27.9cm] w-full max-w-[21.6cm] text-slate-900 border border-slate-200 print:shadow-none print:border-none print:m-0 print:p-0">
