@@ -82,8 +82,8 @@ const App = () => {
                 { path: '/admin/actividades', icon: 'list_alt', label: 'Actividades' },
                 { path: '/admin/cursos', icon: 'room_preferences', label: 'Cursos' },
                 { path: '/admin/materias', icon: 'menu_book', label: 'Materias' },
-                { path: '/admin/observador', icon: 'visibility', label: 'Observador' },
-                { path: '/admin/reporte-observador', icon: 'lab_profile', label: 'Reporte Observador' }
+                { path: '/admin/observador', icon: 'visibility', label: 'Llenar Observador' },
+                { path: '/admin/reporte-observador', icon: 'lab_profile', label: 'Descargar Observador' }
             ]
         },
         {
@@ -112,8 +112,8 @@ const App = () => {
                 { path: '/docente/logros', icon: 'emoji_events', label: 'Logros Generales' },
                 { path: '/docente/comportamiento', icon: 'psychology', label: 'Comportamiento' },
                 { path: '/docente/actividades', icon: 'list_alt', label: 'Actividades' },
-                { path: '/docente/observador', icon: 'visibility', label: 'Observador' },
-                { path: '/docente/reporte-observador', icon: 'lab_profile', label: 'Reporte Observador' },
+                { path: '/docente/observador', icon: 'visibility', label: 'Llenar Observador' },
+                { path: '/docente/reporte-observador', icon: 'lab_profile', label: 'Descargar Observador' },
                 { path: '/docente/estudiantes', icon: 'child_care', label: 'Estudiantes' },
                 { path: '/docente/perfil', icon: 'person', label: 'Mi Perfil' }
             ]
