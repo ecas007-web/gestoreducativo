@@ -252,6 +252,44 @@ los parámetros esta entre el símbolo %%
     en el que se muestre el documento, nombre, grado, año, fecha de confirmacion, estado confirmado debe tener filtros por estudiante, año confirmado y estado confirmado
     los usuarios que tengan el rol de administrador podran ver este modulo
 
+21) en el modulo de "Observador del Alumno" quiero realizar unos cambios visuales:
+- adicionar un filtro de estudiante.
+- las cajas de texto de la vista debe ser de solo lectura
+- cada estudiante debe tener  un boton editar observador con su icono representativo
+- al abrir el detalle del observador se abra un modal con una session de "Datos de Esudiante" con los campos: Grado, periodos, nombre de estudiante
+- en el detalle aparecera la fortaleza, debilidades, estratagia observaciones cada uno  con su cuadro de texto  de bajo ocupe todo el ancho del modal
+- al final un boton guardar y otro cancelar 
+- al pulsar el boton guadar se deben almacenar los cambios, cerrar el modal y los nuevos cambios se deben reflejar el la vista principal
+- el boton guardar  todo ya no sera util ya que el modal guardar de modal los cambios de cada estudiante
+
+22) Certificado de notas
+ en el modulo "generador de boletines" se debe agragar un boton para generar Certificado de Notas que solo se habilitara si se selecciona (el estudiante y el periodo: cuarto perido ) , tomando la plantilla ubicada en la ruta public/plantillas/plantilla_certificado_notas.docx
+
+ - si el grado seleccioando es transicion, en la plantilla el parametro grado_siguiente debe ser PRIMERO
+ - si el grado seleccioando es parvulo, en la plantilla el parametro grado_siguiente debe ser PREJARDIN
+ - si el grado seleccioando es PREJARDIN, en la plantilla el parametro grado_siguiente debe ser JARDIN
+ - si el grado seleccioando es JARDIN, en la plantilla el parametro grado_siguiente debe ser TRANSICION
+
+
+los parámetros esta entre el símbolo %% 
+
+      el encabezado del certificado es:
+    •	apellidos y nombres
+    •	grado (corresponde al grado actual)
+    •	añoo
+    •	documento 
+    •	fecha actual 
+
+    
+
+    el detalle son las calificaciones de las asiganaturas con su respectivo logro concatenado, y su escala de la tabla calificaciones
+        -asignatura
+        - escala
+        - notafinal el cual es el valor de la nota final que se calculo
+
+    
+ 
+
 
 
 •	Funcionalidades de la app

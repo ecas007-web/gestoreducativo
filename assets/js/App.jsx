@@ -99,7 +99,7 @@ const App = () => {
             links: [
                 { path: '/admin/pagos', icon: 'payments', label: 'Pagos' },
                 { path: '/admin/descuentos', icon: 'money_off', label: 'Descuentos' },
-                { path: '/admin/boletines', icon: 'description', label: 'Boletines' }
+                { path: '/admin/boletines', icon: 'description', label: 'Boletines Y certificados de Notas' }
             ]
         }
     ];
