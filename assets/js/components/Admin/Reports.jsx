@@ -14,6 +14,7 @@ export const ReportsManager = () => {
     const [reportData, setReportData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [generatingDocx, setGeneratingDocx] = useState(false);
+    const [generatingCertNotas, setGeneratingCertNotas] = useState(false);
     const [periodo, setPeriodo] = useState('P1');
 
     useEffect(() => {
@@ -195,6 +196,96 @@ export const ReportsManager = () => {
         }
     };
 
+    // Mapea el grado actual al grado correspondiente para el Certificado de Notas
+    // (punto 22): transición -> PRIMERO, parvulo -> PREJARDIN, prejardin -> JARDIN, jardin -> TRANSICION
+    const getCertificateGradeName = (currentName) => {
+        if (!currentName) return 'N/A';
+        const clean = currentName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+        if (clean.includes('parvulo')) return 'PREJARDIN';
+        if (clean.includes('pre jardin') || clean.includes('prejardin')) return 'JARDIN';
+        if (clean.includes('jardin')) return 'TRANSICION';
+        if (clean.includes('transicion')) return 'PRIMERO';
+        return currentName.toUpperCase();
+    };
+
+    const generateGradesCertificate = async () => {
+        if (!selectedStudent || periodo !== 'P4') {
+            return mostrarToast('Selecciona un estudiante y el cuarto periodo para generar el certificado de notas', 'warning');
+        }
+        setGeneratingCertNotas(true);
+        try {
+            const response = await fetch('/plantillas/plantilla_certificado_notas.docx');
+            if (!response.ok) throw new Error('No se pudo cargar la plantilla del certificado de notas');
+            const templateBuffer = await response.arrayBuffer();
+
+            const { data: activeYear } = await supabase.from('anios_academicos').select('*').eq('estado', true).maybeSingle();
+            if (!activeYear) throw new Error('No hay un año académico activo configurado.');
+
+            const student = students.find(s => s.id === selectedStudent);
+            const curso = courses.find(c => c.id === selectedCourse);
+            if (!student) throw new Error('No se encontró el estudiante seleccionado.');
+
+            const { data: notas } = await supabase.from('calificaciones')
+                .select('*, materias(nombre)')
+                .eq('estudiante_id', selectedStudent)
+                .eq('periodo', 'P4')
+                .eq('anio_academico_id', activeYear.id);
+
+            const gradesMapped = (notas || [])
+                .sort((a, b) => (a.materias?.nombre || '').localeCompare(b.materias?.nombre || ''))
+                .map(n => ({
+                    'asignatura': (n.materias?.nombre || '').toUpperCase(),
+                    'escala': n.escala_valorativa || 'N/A',
+                    'notafinal': (n.nota_final !== null && n.nota_final !== undefined) ? Number(n.nota_final).toFixed(1) : 'N/A'
+                }));
+
+            const fechaActualLong = new Date().toLocaleDateString('es-ES', {
+                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+            });
+
+            const fullName = `${student.apellidos} ${student.nombres}`.toUpperCase();
+
+            const data = {
+                'apellidos y nombres': fullName,
+                'apellidos_y_nombres': fullName,
+                'grado': curso?.nombre,
+                'grado_siguiente': getCertificateGradeName(curso?.nombre),
+                'año': activeYear.anio,
+                'ano': activeYear.anio,
+                'documento': `${student.tipo_documento} ${student.numero_documento}`,
+                'fecha actual': fechaActualLong,
+                'asignaturas': gradesMapped,
+                'calificaciones': gradesMapped
+            };
+
+            const docZip = new PizZip(templateBuffer);
+            const doc = new Docxtemplater(docZip, {
+                paragraphLoop: true,
+                linebreaks: true,
+                delimiters: { start: '%', end: '%' }
+            });
+            doc.render(data);
+
+            const out = doc.getZip().generate({
+                type: 'blob',
+                mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            });
+            saveAs(out, `Certificado_Notas_${student.apellidos}_${student.nombres}.docx`);
+            mostrarToast('Certificado de notas generado correctamente', 'success');
+        } catch (err) {
+            console.error(err);
+            if (err.properties && err.properties.errors instanceof Array) {
+                const errorMessages = err.properties.errors.map(e => e.message).join('\n');
+                console.error('Template errors:', errorMessages);
+                mostrarToast(`Error en plantilla: ${errorMessages}`, 'error');
+            } else {
+                mostrarToast(err.message || 'Error al generar el certificado de notas', 'error');
+            }
+        } finally {
+            setGeneratingCertNotas(false);
+        }
+    };
+
     return (
         <div className="space-y-8 no-print animate-fadeIn">
             <div className="card bg-slate-900 border-none text-white p-8 shadow-2xl">
@@ -230,7 +321,7 @@ export const ReportsManager = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
                     <button onClick={generateReport} className="btn bg-blue-600 hover:bg-blue-700 text-white h-[55px] font-black shadow-lg hover:shadow-blue-500/20 active:scale-95 transition-all text-sm uppercase tracking-widest" disabled={loading || !selectedStudent}>
                         <span className="material-symbols-outlined text-xl">visibility</span>
                         {loading ? 'Cargando...' : 'Ver Previa'}
@@ -242,6 +333,15 @@ export const ReportsManager = () => {
                     <button onClick={() => generateAllBulletins('zip')} className="btn btn-secondary h-[55px] font-black shadow-xl hover:shadow-slate-500/20 active:scale-95 transition-all text-sm uppercase tracking-widest" disabled={generatingDocx || !selectedCourse}>
                         <span className="material-symbols-outlined text-xl">folder_zip</span>
                         {generatingDocx ? 'Empacando...' : 'ZIP (Individuales)'}
+                    </button>
+                    <button
+                        onClick={generateGradesCertificate}
+                        className="btn bg-amber-500 hover:bg-amber-600 text-white h-[55px] font-black shadow-xl hover:shadow-amber-500/30 active:scale-95 transition-all text-sm uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed"
+                        disabled={generatingCertNotas || !selectedStudent || periodo !== 'P4'}
+                        title={periodo !== 'P4' || !selectedStudent ? 'Selecciona un estudiante y el cuarto periodo' : 'Generar Certificado de Notas'}
+                    >
+                        <span className="material-symbols-outlined text-xl">fact_check</span>
+                        {generatingCertNotas ? 'Generando...' : 'Certificado de Notas'}
                     </button>
                 </div>
 
